@@ -1116,33 +1116,91 @@ function buildPrompt(req, genre){
   return L.join('\n');
 }
 
-/* ------------------------- 六、API ------------------------- */
+/* ------------------------- 六、API（支持流式，屏幕上实时出字） ------------------------- */
+const API_ERR = {
+  401: '接口密钥不对或已失效。请到「接口设置」重新粘贴 Key（注意别多复制空格，要以 sk- 开头）。',
+  402: '账户余额不足。请到 DeepSeek 官网充值后再试。',
+  403: '这个密钥没有调用该模型的权限，或账号被限制。可换 deepseek-chat 再试。',
+  404: '接口地址不对。DeepSeek 应填 https://api.deepseek.com/v1',
+  422: '请求参数有问题（一般出现在模型名写错时）。模型名建议填 deepseek-chat。',
+  429: '请求太频繁或超出配额，等十几秒再试一次。',
+  500: '对方服务器临时出错，等一会儿再试。',
+  503: '对方服务繁忙，稍后重试。'
+};
+function apiErrorText(status, body){
+  let hint = API_ERR[status] || ('接口返回了 ' + status + ' 错误。');
+  let detail = '';
+  try{
+    const o = JSON.parse(body);
+    detail = (o.error && (o.error.message || o.error.type)) || o.message || '';
+  }catch(e){ detail = (body||'').slice(0,200); }
+  return hint + (detail ? ('\n接口原话：' + detail) : '');
+}
+
+/* 统一的接口调用。opts.onDelta(累计文本) 有值时走流式，屏幕上能实时看到字。 */
 async function callAPI(messages, opts){
-  opts = opts||{};
+  opts = opts || {};
   const s = ST.settings;
-  if(!s.apiKey) throw new Error('未填写 API Key（可在右上角“接口设置”里填写，或改用导出提示词模式）');
+  if(!s.apiKey) throw new Error('还没填 API Key。点「接口设置」填一次，以后就能在站内直接生成。');
   const url = s.baseUrl.replace(/\/+$/,'') + '/chat/completions';
+  const useStream = !!opts.onDelta;
   const body = {
     model: s.model || 'deepseek-chat',
     messages: messages,
-    temperature: (opts.temperature==null?0.92:opts.temperature),
+    temperature: (opts.temperature == null ? 0.92 : opts.temperature),
     max_tokens: opts.maxTokens || 4000,
-    stream: false
+    stream: useStream
   };
   if(opts.json) body.response_format = {type:'json_object'};
-  const res = await fetch(url, {
-    method:'POST',
-    headers:{'Content-Type':'application/json','Authorization':'Bearer '+s.apiKey},
-    body: JSON.stringify(body)
-  });
+
+  let res;
+  try{
+    res = await fetch(url, {
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+s.apiKey},
+      body: JSON.stringify(body)
+    });
+  }catch(e){
+    throw new Error('连不上接口。可能是网络问题，或接口地址填错了。\n当前地址：' + s.baseUrl +
+      '\n如果是在本地文件里打开（file://），浏览器会拦住接口调用，请改用网址访问。');
+  }
   if(!res.ok){
     let t=''; try{ t = await res.text(); }catch(e){}
-    throw new Error('接口返回 '+res.status+'：'+t.slice(0,300));
+    throw new Error(apiErrorText(res.status, t));
   }
-  const data = await res.json();
-  const txt = data && data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
-  if(!txt) throw new Error('接口返回内容为空');
-  return txt;
+
+  // 非流式：一次拿完
+  if(!useStream){
+    const data = await res.json();
+    const txt = data && data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
+    if(!txt) throw new Error('接口返回了空内容，换个说法再试一次。');
+    return txt;
+  }
+
+  // 流式：逐块拼接，边收边回调，页面实时出字
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder('utf-8');
+  let buf = '', full = '';
+  while(true){
+    const chunk = await reader.read();
+    if(chunk.done) break;
+    buf += decoder.decode(chunk.value, {stream:true});
+    const lines = buf.split('\n');
+    buf = lines.pop();
+    for(const line of lines){
+      const t = line.trim();
+      if(!t || t.indexOf('data:') !== 0) continue;
+      const payload = t.slice(5).trim();
+      if(payload === '[DONE]') continue;
+      try{
+        const o = JSON.parse(payload);
+        const d = o.choices && o.choices[0] && (o.choices[0].delta || o.choices[0].message);
+        if(d && d.content){ full += d.content; opts.onDelta(full); }
+      }catch(e){ /* 半截 JSON，忽略 */ }
+    }
+  }
+  if(!full) throw new Error('接口没有返回内容，请再试一次。');
+  return full;
 }
 
 function parseArticle(raw){
@@ -1238,40 +1296,100 @@ const UI = {
   closeModal(){ $('mask').classList.remove('on'); },
   openSettings(){
     const s = ST.settings;
-    openModal('接口设置（DeepSeek / OpenAI 兼容）',
-      '<div class="note blue" style="margin-bottom:12px">填了 Key 就能在程序里一键生成和改稿；不填也能用——程序会把打磨好的提示词给你，复制到网页版对话框里生成，再把结果粘回来修改。<br>Key 只保存在你本机浏览器的 localStorage 里，不会上传到别处。</div>'+
-      '<div class="field"><label>接口地址 Base URL</label><input type="text" id="setUrl" value="'+esc(s.baseUrl)+'"></div>'+
-      '<div class="field"><label>模型名</label><input type="text" id="setModel" value="'+esc(s.model)+'">'+
-        '<div class="tip">DeepSeek 常用：deepseek-chat（快、便宜）／deepseek-reasoner（推理强、慢）。</div></div>'+
-      '<div class="field"><label>API Key</label><input type="password" id="setKey" value="'+esc(s.apiKey)+'" placeholder="sk-..."></div>'+
+    const keyed = !!s.apiKey;
+    const steps =
+      '<div class="note '+(keyed?'green':'blue')+'" style="margin-bottom:12px">'+
+        (keyed
+          ? '<b>站内生成已开启。</b>现在点「生成」就直接在程序里出稿，不用再去开对话助手。<br>换 Key 或者出问题了，看下面第 2 步。'
+          : '<b>填一次 Key，就能在这个页面里直接生成，不用再去别的对话助手。</b>全部操作都在手机上完成，大约 2 分钟。')+
+      '</div>'+
+      '<div class="secttl">第 1 步　去 DeepSeek 官网拿一个 Key</div>'+
+      '<ol style="margin:0 0 12px;padding-left:20px;font-size:13.5px;line-height:2">'+
+        '<li>打开 <b>platform.deepseek.com</b>（注意是 platform，不是聊天那个 deepseek.com）</li>'+
+        '<li>注册 / 登录，手机号或邮箱都行</li>'+
+        '<li>左侧菜单点 <b>API keys</b> → <b>创建 API key</b></li>'+
+        '<li>复制出来的那串字符（以 <b>sk-</b> 开头），下一步贴进来</li>'+
+      '</ol>'+
+      '<div class="secttl">第 2 步　把 Key 填进来</div>'+
+      '<div class="field"><label>API Key<span class="sub">粘贴到这里，注意前后不要有空格</span></label>'+
+        '<input type="password" id="setKey" value="'+esc(s.apiKey)+'" placeholder="sk-..." autocomplete="off"></div>'+
+      '<div class="field"><label>模型</label><select id="setModel">'+
+        ['deepseek-chat|deepseek-chat　推荐：快、便宜，写应用文足够','deepseek-reasoner|deepseek-reasoner　更聪明但慢、更贵'].map(x=>{
+          const [v,t] = x.split('|');
+          return '<option value="'+v+'"'+(s.model===v?' selected':'')+'>'+t+'</option>';
+        }).join('')+
+        (['deepseek-chat','deepseek-reasoner'].indexOf(s.model)<0 ? '<option value="'+esc(s.model)+'" selected>'+esc(s.model)+'（自定义）</option>' : '')+
+      '</select>'+
+      '<div class="tip">不确定就用 deepseek-chat。多数情况下两个都能写出符合教材体例的应用文。</div></div>'+
       '<div class="field"><label>生成方式</label><select id="setMode">'+
-        '<option value="auto"'+(s.mode==='auto'?' selected':'')+'>自动：有 Key 就直接生成，无 Key 就导出提示词</option>'+
-        '<option value="api"'+(s.mode==='api'?' selected':'')+'>只用接口生成</option>'+
-        '<option value="manual"'+(s.mode==='manual'?' selected':'')+'>只导出提示词（不调用接口）</option>'+
+        '<option value="auto"'+(s.mode==='auto'?' selected':'')+'>自动（推荐）：有 Key 就站内生成，没 Key 就导出提示词</option>'+
+        '<option value="api"'+(s.mode==='api'?' selected':'')+'>只用站内生成</option>'+
+        '<option value="manual"'+(s.mode==='manual'?' selected':'')+'>只导出提示词（不花钱，自己去对话助手粘贴）</option>'+
       '</select></div>'+
-      '<div id="apiTestOut"></div>',
-      '<button class="btn" onclick="UI.testAPI()">测试连通性</button>'+
-      '<button class="btn pri" onclick="UI.saveSettings()">保存</button>');
+      '<details class="acc"><summary>进阶设置（一般不用动）</summary><div class="acc-b">'+
+        '<div class="field"><label>接口地址 Base URL</label><input type="text" id="setUrl" value="'+esc(s.baseUrl)+'"></div>'+
+        '<div class="tip">DeepSeek 官方地址是 <span class="mono-s">https://api.deepseek.com/v1</span>。只有换用其他兼容接口时才需要改。</div>'+
+      '</div></details>'+
+      '<div id="apiTestOut"></div>'+
+      '<div class="tip" style="margin-top:10px">Key 只存在你手机的浏览器里，不会上传到任何地方，也不会写进网页。'+
+      '别人打开这个网址是看不到你的 Key 的。</div>';
+    openModal('站内直接生成 · 设置',
+      steps,
+      '<button class="btn" onclick="UI.testAPI()">测试连接</button>'+
+      '<button class="btn pri" onclick="UI.saveSettings()">保存并启用</button>');
   },
   saveSettings(){
-    ST.settings.baseUrl = $('setUrl').value.trim() || 'https://api.deepseek.com/v1';
-    ST.settings.model = $('setModel').value.trim() || 'deepseek-chat';
+    const urlEl = $('setUrl');
+    ST.settings.baseUrl = (urlEl ? urlEl.value.trim() : '') || ST.settings.baseUrl || 'https://api.deepseek.com/v1';
+    ST.settings.model = ($('setModel').value || 'deepseek-chat').trim();
     ST.settings.apiKey = $('setKey').value.trim();
     ST.settings.mode = $('setMode').value;
-    save(); renderTop(); UI.closeModal(); toast('已保存');
+    save(); renderTop(); UI.closeModal();
+    if(ST.settings.apiKey) toast('已开启站内生成，现在可以直接出稿了', 3000);
+    else toast('已保存（未填 Key，仍为导出提示词模式）', 3000);
+    renderAll();
   },
   async testAPI(){
     const out = $('apiTestOut');
-    out.innerHTML = '<div class="status"><span class="spin"></span>正在测试……</div>';
-    ST.settings.baseUrl = $('setUrl').value.trim();
-    ST.settings.model = $('setModel').value.trim();
+    if(!out) return;
+    // 先按输入框里的内容试，不用先保存
+    const urlEl = $('setUrl');
+    const backup = {baseUrl:ST.settings.baseUrl, model:ST.settings.model, apiKey:ST.settings.apiKey};
+    if(urlEl && urlEl.value.trim()) ST.settings.baseUrl = urlEl.value.trim();
+    ST.settings.model = ($('setModel').value || '').trim() || ST.settings.model;
     ST.settings.apiKey = $('setKey').value.trim();
+
+    if(!ST.settings.apiKey){
+      out.innerHTML = '<div class="note">还没填 Key。先按上面第 1 步去官网拿一个，粘贴到这里再测。</div>';
+      return;
+    }
+    out.innerHTML = '<div class="status"><span class="spin"></span>正在连接 DeepSeek……</div>';
+    const t0 = Date.now();
     try{
-      const r = await callAPI([{role:'user',content:'只回复两个字：正常'}], {temperature:0, maxTokens:20});
-      out.innerHTML = '<div class="note green">连通成功，模型回复：'+esc(r.trim().slice(0,50))+'</div>';
+      let shown = '';
+      const r = await callAPI(
+        [{role:'user', content:'请只回复两个字：正常'}],
+        {temperature:0, maxTokens:20, onDelta:function(txt){ 
+          if(txt !== shown){ shown = txt; out.innerHTML = '<div class="status"><span class="spin"></span>连接中，已收到：'+esc(txt.slice(0,20))+'</div>'; }
+        }}
+      );
+      const ms = Date.now() - t0;
+      out.innerHTML = '<div class="note green"><b>连接成功。</b>模型回复「'+esc(r.trim().slice(0,20))+'」，用时 '+(ms/1000).toFixed(1)+' 秒。'+
+        '<br>点下面的「保存并启用」，之后就能在站内直接生成文章了。</div>';
     }catch(e){
-      out.innerHTML = '<div class="note" style="background:#fbecec;border-color:#eccfcf;color:#8e2f2f">连接失败：'+esc(e.message)+
-      '<br><br>如果是 CORS/跨域或 Failed to fetch：说明浏览器直接调用被拦。可改用“只导出提示词”模式，把提示词贴到 DeepSeek 网页版使用。</div>';
+      // 测试失败要把设置还原，别把好用的配置覆盖坏
+      ST.settings.baseUrl = backup.baseUrl; ST.settings.model = backup.model; ST.settings.apiKey = backup.apiKey;
+      const msg = String(e.message||'');
+      let extra = '';
+      if(/连不上接口|Failed to fetch|NetworkError/i.test(msg)){
+        extra = '<br><br><b>可能的原因：</b>① 网络不通（换个网络试试）；② 接口地址写错；'+
+                '③ 你是用本地文件打开的（file://），浏览器会拦住接口调用 —— 用网址访问就没这个问题。';
+      } else if(/401|密钥|失效/.test(msg)){
+        extra = '<br><br>检查一下：Key 是不是复制完整了？前后有没有混进空格？是不是已经在官网把它删掉了？';
+      } else if(/402|余额/.test(msg)){
+        extra = '<br><br>去 platform.deepseek.com 的「充值」页面充一点，几块钱就能写很多篇。';
+      }
+      out.innerHTML = '<div class="note" style="background:#fbecec;border-color:#eccfcf;color:#8e2f2f"><b>连接失败。</b><br>'+esc(msg)+extra+'</div>';
     }
   },
   openBook(){
@@ -1461,6 +1579,7 @@ const App = {
     if(!p.prompts.length){ toast('请先生成提示词'); return; }
     const fb = ($('fbInput')?$('fbInput').value:'').trim();
     if(!fb){ toast('请先写下你的修改意见'); return; }
+    ST.ui.lastFb = fb;   // 重绘后回填，免得用户以为意见没提交上去
     const cur = p.prompts[p.curPrompt];
     if(busy) return;
     busy = true; renderPromptPanel();
@@ -1491,18 +1610,21 @@ const App = {
       '⑤ 只输出修改后的完整提示词正文，不要任何解释、不要用代码块包裹。';
 
     try{
+      const box = $('liveBox');
       App.log('正在按意见优化提示词……');
       const newText = await callAPI([
         {role:'system', content:sys},
         {role:'user', content:'【当前提示词】\n'+cur.text+'\n\n【我的修改意见】\n'+fb+'\n\n请输出修改后的完整提示词。'}
-      ], {temperature:0.5, maxTokens:5000});
+      ], {temperature:0.5, maxTokens:5000, onDelta:function(t){
+        if(box) box.textContent = t;
+      }});
       const clean = newText.replace(/^```[a-zA-Z]*\s*/,'').replace(/```\s*$/,'').trim();
       p.prompts.push({v:p.prompts.length+1, text:clean, note:fb, time:nowStr(), mode:'ai'});
       p.curPrompt = p.prompts.length-1; ST.ui.promptVersion=p.prompts.length-1;
       p.logs.unshift({t:nowStr().slice(11), msg:'提示词升级到 v'+(p.prompts.length)+'：'+fb.slice(0,40), cls:'g'});
       save(); busy=false; renderAll(); toast('已生成 v'+p.prompts.length);
     }catch(e){
-      busy=false; App.log('优化失败：'+e.message,'r'); renderPromptPanel(); toast('优化失败：'+e.message, 4000);
+      busy=false; App.log('优化失败：'+e.message,'r'); renderPromptPanel(); toast('优化失败，看下方红字说明', 4000);
     }
   },
   editPromptManual(){
@@ -1553,11 +1675,23 @@ const App = {
     if(ST.settings.mode==='manual' || !ST.settings.apiKey){
       const lines = [];
       for(let i=0;i<n;i++){ lines.push('=========== 第 '+(i+1)+' 篇（变化要求：'+seedLine(i)+'） ===========\n'+cur.text); }
-      openModal('无 Key 模式：请把下面 '+n+' 份提示词分别投喂给对话模型',
-        '<div class="note" style="margin-bottom:10px">每份提示词的“变化要求”都不同，这样生成出来的文章才不是同一篇的复制品。生成后把结果粘回“成品修改”里即可继续改。</div>'+
-        '<div class="doc">'+esc(lines.join('\n\n\n'))+'</div>',
-        '<button class="btn" onclick="copyText(document.querySelector(\'#modal .doc\').textContent);toast(\'已复制全部\')">复制全部</button>'+
-        '<button class="btn pri" onclick="UI.closeModal()">知道了</button>');
+      openModal('改成站内直接生成？还是继续去对话助手粘贴？',
+        '<div class="note green" style="margin-bottom:12px"><b>推荐：填一次 API Key，以后就在这个页面里直接出稿。</b><br>'+
+        '不用再切到别的 App、不用复制粘贴、字数还由程序自动校正。Key 只花几块钱能用很久，只存在你手机里。</div>'+
+        '<div class="btnbar" style="margin-bottom:14px">'+
+          '<button class="btn pri" onclick="UI.closeModal();UI.openSettings()">去填 Key，开启站内生成 →</button>'+
+          '<button class="btn" onclick="$(\'manualBox\').style.display=\'block\'">我用对话助手就行，给我提示词</button>'+
+        '</div>'+
+        '<div id="manualBox" style="display:none">'+
+          '<div class="secttl">'+n+' 份提示词（每份的“变化要求”不同，所以写出来不会雷同）</div>'+
+          '<div class="doc">'+esc(lines.join('\n\n\n'))+'</div>'+
+          '<div class="btnbar" style="margin-top:10px">'+
+            '<button class="btn" onclick="copyText(document.querySelector(\'#manualBox .doc\').textContent);toast(\'已复制全部\')">复制全部</button>'+
+            '<button class="btn" onclick="downloadText(document.querySelector(\'#manualBox .doc\').textContent,\'提示词.txt\')">导出 TXT</button>'+
+          '</div>'+
+          '<div class="tip" style="margin-top:8px">生成后回到「成品修改」→「粘贴新成稿」，把结果贴进来就能继续改。</div>'+
+        '</div>',
+        '<button class="btn pri" onclick="UI.closeModal()">关闭</button>');
       return;
     }
 
@@ -1566,7 +1700,7 @@ const App = {
     let done=0, fail=0;
     for(let i=0;i<n;i++){
       try{
-        p.logs.unshift({t:nowStr().slice(11), msg:'正在生成第 '+(i+1)+'/'+n+' 篇……', cls:'y'});
+        p.logs.unshift({t:nowStr().slice(11), msg:'正在生成第 '+(i+1)+'/'+n+' 篇……（文字会实时出现）', cls:'y'});
         renderGenPanel();
         const variation = seedLine(i);
         const userMsg = cur.text + '\n\n==================== 七、本篇差异化要求（覆盖上一篇的写法） ====================\n'+
@@ -1575,10 +1709,16 @@ const App = {
           '- 具体时间、地点、活动名称、数据都要另设一套，不要套用你上一次写的；\n'+
           '- 标题不要只是换个数字，句式和落点要换。\n'+
           '\n再强调一遍字数：正文控制在 '+p.req.wcMin+'—'+p.req.wcMax+' 字之间。';
+        // 流式：直接把收到的文字写进 liveBox，不走整页重绘，手机上才跟得上
         let raw = await callAPI([
           {role:'system', content:'你是中文应用文写作实操写手，严格按用户给出的规范与字数写作。'},
           {role:'user', content:userMsg}
-        ], {temperature:0.95, maxTokens:4000});
+        ], {temperature:0.95, maxTokens:4000, onDelta:function(t){
+          const box = $('liveBox');
+          if(box){ box.textContent = t; box.scrollTop = box.scrollHeight; }
+          const tip = $('liveTip');
+          if(tip) tip.textContent = '第 '+(i+1)+'/'+n+' 篇　已收到 ' + countChars(t) + ' 字';
+        }});
         let art = parseArticle(raw);
         let wc = countChars(art.body);
 
@@ -1595,7 +1735,12 @@ const App = {
           const fixed = await callAPI([
             {role:'system', content:'你是中文应用文写作实操写手，严格按字数要求修改文稿，禁止注水、禁止AI腔。'},
             {role:'user', content:fixMsg}
-          ], {temperature:0.5, maxTokens:4000});
+          ], {temperature:0.5, maxTokens:4000, onDelta:function(t){
+            const box = $('liveBox');
+            if(box){ box.textContent = t; box.scrollTop = box.scrollHeight; }
+            const tip = $('liveTip');
+            if(tip) tip.textContent = '第 '+(i+1)+'/'+n+' 篇　字数校正中（'+wc+' 字 → 目标 '+p.req.wcMin+'—'+p.req.wcMax+'）';
+          }});
           const a2 = parseArticle(fixed);
           if(countChars(a2.body) === wc) break;
           art = a2; wc = countChars(art.body);
@@ -1624,7 +1769,7 @@ const App = {
     const p=P(); const idx = p.articles.findIndex(a=>a.id===id);
     if(idx<0) return;
     const cur = p.prompts[p.curPrompt];
-    if(ST.settings.mode==='manual' || !ST.settings.apiKey){ toast('无 Key 模式：请复制提示词到对话框生成后，用“粘贴外部成稿”导入'); return; }
+    if(ST.settings.mode==='manual' || !ST.settings.apiKey){ toast('还没填 Key，暂时不能在站内重写。点「接口设置」填一次即可。', 4000); return; }
     if(busy){ toast('正在忙，请稍候'); return; }
     busy=true; renderGenPanel();
     try{
@@ -1632,7 +1777,12 @@ const App = {
       const raw = await callAPI([
         {role:'system', content:'你是中文应用文写作实操写手，严格按规范与字数写作。'},
         {role:'user', content: cur.text+'\n\n==================== 本篇要求 ====================\n重写一篇，与下面这篇旧稿在场景、结构、措辞上都要有明显区别：\n'+variation+'\n【旧稿，仅供参考不要照抄】\n'+p.articles[idx].body}
-      ], {temperature:1.0, maxTokens:4000});
+      ], {temperature:1.0, maxTokens:4000, onDelta:function(t){
+        const box = $('liveBox');
+        if(box){ box.textContent = t; box.scrollTop = box.scrollHeight; }
+        const tip = $('liveTip');
+        if(tip) tip.textContent = '正在重写第 '+(idx+1)+' 篇　已收到 ' + countChars(t) + ' 字';
+      }});
       const art = parseArticle(raw);
       const scan = scanAI(art.body);
       const a = p.articles[idx];
@@ -1714,9 +1864,12 @@ const App = {
   },
   async revise(id){
     const p=P(); const a=p.articles.find(x=>x.id===id); if(!a) return;
+    // 必须在 renderEditPanel 之前把指令取出来：重绘会把输入框整个重建，值会丢
     const box = $('reviseBox'); const instr = box? box.value.trim() : '';
     if(!instr){ toast('请先写下修改要求'); return; }
     if(busy){ toast('正在忙'); return; }
+    // 记住指令，重绘后回填，避免用户看到自己写的要求消失了
+    ST.ui.lastRevise = instr;
     // 局部文本替换语法
     const rep = parseReplace(instr);
     if(rep){
@@ -1729,10 +1882,21 @@ const App = {
     }
     if(ST.settings.mode==='manual' || !ST.settings.apiKey){
       const pkg = '【修改要求】'+instr+'\n\n【现文】\n'+a.body+'\n\n请按修改要求改这篇应用文，保持文种体例和 '+p.req.wcMin+'—'+p.req.wcMax+' 字，禁止 AI 腔，只输出修改后的完整正文（第一行 TITLE: 标题）。';
-      openModal('无 Key 模式：把下面这段投喂给对话模型',
-        '<div class="doc">'+esc(pkg)+'</div>',
-        '<button class="btn" onclick="copyText(document.querySelector(\'#modal .doc\').textContent);toast(\'已复制\')">复制</button>'+
-        '<button class="btn pri" onclick="UI.closeModal()">知道了</button>');
+      openModal('让程序直接改？还是自己去对话助手改？',
+        '<div class="note green" style="margin-bottom:12px"><b>填一次 Key，以后在这里写一句要求就能直接改。</b>不用复制粘贴、不用切 App。'+
+        '如果只是改几个字，其实不用花这个钱 —— 写「把“A”改成“B”」这种，程序会直接替换，不调用接口。</div>'+
+        '<div class="btnbar" style="margin-bottom:14px">'+
+          '<button class="btn pri" onclick="UI.closeModal();UI.openSettings()">去填 Key，开启站内改稿 →</button>'+
+          '<button class="btn" onclick="$(\'manualBox2\').style.display=\'block\'">我用对话助手，给我指令</button>'+
+        '</div>'+
+        '<div id="manualBox2" style="display:none">'+
+          '<div class="secttl">把下面这段发给对话助手</div>'+
+          '<div class="doc">'+esc(pkg)+'</div>'+
+          '<div class="btnbar" style="margin-top:10px">'+
+            '<button class="btn" onclick="copyText(document.querySelector(\'#manualBox2 .doc\').textContent);toast(\'已复制\')">复制</button>'+
+          '</div>'+
+        '</div>',
+        '<button class="btn pri" onclick="UI.closeModal()">关闭</button>');
       return;
     }
     busy=true; renderEditPanel();
@@ -1745,14 +1909,17 @@ const App = {
           '【去AI痕迹规则】\n'+STYLE_RULES.map((r,i)=>(i+1)+'. '+r).join('\n')+'\n\n'+
           '【现文】\n'+a.body+'\n\n【修改要求】\n'+instr+'\n\n'+
           '只输出修改后的完整正文，第一行 TITLE: 标题，不要解释。'}
-      ], {temperature:0.7, maxTokens:4000});
+      ], {temperature:0.7, maxTokens:4000, onDelta:function(t){
+        const lb = $('editLiveBox');
+        if(lb){ lb.textContent = t; lb.scrollTop = lb.scrollHeight; }
+      }});
       const art = parseArticle(raw);
       App.snapshot(id, '按意见修改前：'+instr.slice(0,30));
       a.title=art.title; a.body=art.body; a.wc=countChars(a.body);
       const s=scanAI(a.body); a.aiHits=s.hits; a.stats=s.stats;
       p.logs.unshift({t:nowStr().slice(11), msg:'第 '+(p.articles.indexOf(a)+1)+' 篇按意见修改完成（'+a.wc+' 字）', cls:'g'});
       save(); busy=false; renderAll(); toast('已修改');
-    }catch(e){ busy=false; renderEditPanel(); toast('修改失败：'+e.message,3500); }
+    }catch(e){ busy=false; renderEditPanel(); toast('修改失败，看下方红字说明',3500); }
   },
   async deAI(id){
     const p=P(); const a=p.articles.find(x=>x.id===id); if(!a) return;
@@ -1778,14 +1945,17 @@ const App = {
           '【改写规则】\n'+STYLE_RULES.map((r,i)=>(i+1)+'. '+r).join('\n')+'\n'+
           '另外：字数保持 '+p.req.wcMin+'—'+p.req.wcMax+' 字，格式要素一个不能少。\n\n'+
           '只输出改写后的完整正文，第一行 TITLE: 标题，不要说明改了什么。'}
-      ], {temperature:0.9, maxTokens:4000});
+      ], {temperature:0.9, maxTokens:4000, onDelta:function(t){
+        const box = $('editLiveBox');
+        if(box){ box.textContent = t; box.scrollTop = box.scrollHeight; }
+      }});
       const art = parseArticle(raw);
       App.snapshot(id,'去AI味改写前');
       a.title=art.title; a.body=art.body; a.wc=countChars(a.body);
       const s=scanAI(a.body); a.aiHits=s.hits; a.stats=s.stats;
       save(); busy=false; renderAll();
       toast('改写完成，套话 '+(scan.hits.length?s.hits.length+' 处残留':'已清零'), 3000);
-    }catch(e){ busy=false; renderEditPanel(); toast('改写失败：'+e.message,3500); }
+    }catch(e){ busy=false; renderEditPanel(); toast('改写失败，看下方红字说明',3500); }
   },
   async expand(id, dir){
     const p=P(); const a=p.articles.find(x=>x.id===id); if(!a) return;
@@ -2001,7 +2171,7 @@ function renderPromptPanel(){
 
       '<div class="card"><div class="card-h"><h3>提出修改意见，让它自己升级</h3></div><div class="card-b">'+
         '<div class="note blue" style="margin-bottom:10px">把不满意的地方直接写出来，程序会把意见合并进提示词，生成新版本（旧版保留）。意见写得越具体，改得越准。</div>'+
-        '<div class="field"><textarea id="fbInput" rows="5" class="ta" style="min-height:130px" placeholder="例如：&#10;· 字数改成1200-1500字，并且必须写到具体日期&#10;· 不要出现“首先其次最后”，不要用“××”占位，换成具体假名字&#10;· 增加一条：正文里要有一段写存在的困难&#10;· 去掉参考样式那一节，只保留结构框架"></textarea></div>'+
+        '<div class="field"><textarea id="fbInput" rows="5" class="ta" style="min-height:130px" placeholder="例如：&#10;· 字数改成1200-1500字，并且必须写到具体日期&#10;· 不要出现“首先其次最后”，不要用“××”占位，换成具体假名字&#10;· 增加一条：正文里要有一段写存在的困难&#10;· 去掉参考样式那一节，只保留结构框架">'+esc(ST.ui.lastFb||'')+'</textarea></div>'+
         '<div class="btnbar">'+
           '<button class="btn pri" onclick="App.refinePrompt()">'+(busy?'优化中…':'按意见优化升级 →')+'</button>'+
           '<button class="btn" onclick="App.editPromptManual()">手动编辑</button>'+
@@ -2058,18 +2228,33 @@ function renderGenPanel(){
   const list = p.articles.length? p.articles.map((a,i)=>articleCard(a,i,true)).join('') :
     '<div class="empty"><span class="big">▤</span>还没有文章，点上面的按钮开始生成。</div>';
   $('work').innerHTML =
+    (mode==='manual' ?
+      '<div class="card" style="border-color:#c9e0d5;background:linear-gradient(180deg,#f2f8f5,#fff)">'+
+        '<div class="card-h" style="background:#e7f1ec;border-color:#c9e0d5"><h3>想让程序直接帮你写出来吗？</h3></div>'+
+        '<div class="card-b">'+
+          '<div style="font-size:13.5px;color:var(--ink2);line-height:1.85">现在这个模式要你复制提示词去别的对话助手，生成完再粘回来。<br>'+
+          '<b>填一次 API Key，以后就在这个页面直接出稿</b>——不用切 App、不用复制粘贴，字数还由程序自动校正。'+
+          'Key 只存在你手机里，几块钱能用很久。</div>'+
+          '<div class="btnbar" style="margin-top:11px">'+
+            '<button class="btn pri" onclick="UI.openSettings()">去填 Key，开启站内生成 →</button>'+
+            '<button class="btn" onclick="App.generate()">我还是要提示词</button>'+
+          '</div>'+
+        '</div>'+
+      '</div>' : '')+
     '<div class="card"><div class="card-h"><h3>用 v'+cur.v+' 提示词批量出稿</h3><span class="spacer"></span>'+
       '<span class="hint">'+esc(curGenre()?curGenre().name:(p.req.genreOther||'自定义'))+'　'+p.req.wcMin+'—'+p.req.wcMax+' 字　共 '+p.req.count+' 篇</span></div>'+
       '<div class="card-b">'+
         '<div class="btnbar">'+
           '<button class="btn pri" onclick="App.generate()">'+(busy?'生成中…':'生成 '+p.req.count+' 篇不同文章')+'</button>'+
+          (mode==='api'? '<button class="btn" onclick="UI.openSettings()">接口设置</button>':'')+
           '<button class="btn" onclick="App.pasteArticle()">粘贴外部成稿</button>'+
           '<button class="btn" onclick="App.exportAllArticles()">导出全部 TXT</button>'+
           '<button class="btn" onclick="App.exportAllDoc()">导出全部 Word</button>'+
           '<button class="btn" onclick="App.setTab(\'prompt\')">回去改提示词</button>'+
         '</div>'+
-        (mode==='manual'? '<div class="note" style="margin-top:11px"><b>当前是无 Key 模式：</b>点“生成”会弹出 '+p.req.count+' 份带差异化要求的提示词，分别贴给对话模型用；生成后点“粘贴外部成稿”把结果收回来，再修改。</div>':'')+
-        (busy?'<div class="status"><span class="spin"></span>正在生成，逐篇完成，请勿关闭页面……</div>':'')+
+        (mode==='api'? '<div class="note green" style="margin-top:11px"><b>站内生成已开启</b>（'+esc(ST.settings.model)+'）。点上面那个按钮，文章会直接在下面一段段写出来。</div>':'')+
+        (busy? '<div class="status"><span class="spin"></span><span id="liveTip">正在生成，文字会实时出现……</span></div>'+
+               '<div class="doc" id="liveBox" style="max-height:280px;margin-top:8px;background:#fff"></div>' : '')+
         '<div class="tip" style="margin-top:9px">每篇会自动换：切入角度、结构变体、单位名、地点、人名，所以不会是同一篇的复制品。生成后程序自己数字数，不够就补、超了就删。</div>'+
       '</div></div>'+
     (p.logs.length? '<div class="card"><div class="card-h"><h3>生成进度</h3></div><div class="card-b tight"><div class="log" style="border-radius:0;max-height:170px">'+
@@ -2135,9 +2320,14 @@ function renderEditPanel(keepFocus){
         '<button class="btn sm" onclick="App.pasteArticle()">粘贴新成稿</button></div>'+
         '<div class="card-b tight" style="padding:12px">'+listHtml+'</div></div>'+
 
-      '<div class="card"><div class="card-h"><h3>让它按你的要求改</h3></div><div class="card-b">'+
+      '<div class="card"><div class="card-h"><h3>让它按你的要求改</h3><span class="spacer"></span>'+
+        '<span class="hint">'+esc(ST.settings.apiKey?('站内直接改 · '+ST.settings.model):'未填 Key · 只能给指令')+'</span></div><div class="card-b">'+
         '<div class="note blue" style="margin-bottom:10px">直接用大白话写要求。也可以只改几个字，例如：<span class="mono-s">把“定于6月18日”改成“定于6月20日”</span>（程序会直接替换，不调用模型、不花钱）。</div>'+
-        '<div class="field"><textarea id="reviseBox" rows="4" class="ta" style="min-height:104px" placeholder="例如：&#10;· 第二段太像总结，改成按时间顺序写&#10;· 把我方改成××学院学生会，落款日期改成2025年6月5日&#10;· 再删掉100字左右，结尾落到联系人电话上"></textarea></div>'+
+        (ST.settings.apiKey? '' :
+          '<div class="note" style="margin-bottom:10px;background:#f8f1e2;border-color:#eadcbe;color:#6b5320">'+
+          '还没填 API Key，所以现在只能给你指令、要你自己去对话助手改。<b>填一次 Key 就能在这里一句话直接改。</b>　'+
+          '<button class="btn sm pri" style="margin-left:6px" onclick="UI.openSettings()">去填 Key</button></div>')+
+        '<div class="field"><textarea id="reviseBox" rows="4" class="ta" style="min-height:104px" placeholder="例如：&#10;· 第二段太像总结，改成按时间顺序写&#10;· 把我方改成××学院学生会，落款日期改成2025年6月5日&#10;· 再删掉100字左右，结尾落到联系人电话上">'+esc(ST.ui.lastRevise||'')+'</textarea></div>'+
         '<div class="btnbar">'+
           '<button class="btn pri" onclick="App.revise(\''+a.id+'\')">'+(busy?'处理中…':'按这个要求改')+'</button>'+
           '<button class="btn warn" onclick="App.deAI(\''+a.id+'\')">一键去AI味改写</button>'+
@@ -2148,7 +2338,8 @@ function renderEditPanel(keepFocus){
           ['把这篇文章的套话全部删掉','把排比句改成陈述句','把结尾改成落到具体时间和联系人','增加一段写存在的困难','把我方口径改成更口语一点，但格式不要动','段落长度打乱一些，不要每段一样长'
           ].map(x=>'<div class="chip" onclick="document.getElementById(\'reviseBox\').value=\''+x.replace(/'/g,"\\'")+'\'">'+esc(x)+'</div>').join('')+
         '</div>'+
-        (busy?'<div class="status"><span class="spin"></span>正在处理……</div>':'')+
+        (busy?'<div class="status" style="margin-top:9px"><span class="spin"></span>正在改，文字会实时出现……</div>'+
+               '<div class="doc" id="editLiveBox" style="max-height:260px;margin-top:8px;background:#fff"></div>':'')+
       '</div></div>'+
 
       '<div class="card"><div class="card-h"><h3>AI味体检</h3><span class="spacer"></span>'+
