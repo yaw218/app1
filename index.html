@@ -1,0 +1,2266 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1f6f52">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="应用文写作工坊">
+<meta name="format-detection" content="telephone=no">
+<title>应用文写作工坊 · 提示词打磨 + 多篇成稿</title>
+<style>
+:root{
+  --bg:#f4f6f3; --panel:#ffffff; --panel2:#fafbf9; --line:#dfe4dc; --line2:#eceee9;
+  --ink:#1f2724; --ink2:#4d5852; --ink3:#8a948d;
+  --green:#1f6f52; --green2:#2e8a67; --greensoft:#e7f1ec;
+  --gold:#a8761f; --goldsoft:#f8f1e2;
+  --red:#b23b3b; --redsoft:#fbecec;
+  --blue:#2f5d8a; --bluesoft:#eaf1f8;
+  --radius:12px; --shadow:0 1px 3px rgba(31,39,36,.07), 0 8px 24px rgba(31,39,36,.05);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;height:100%;overscroll-behavior-y:none}
+body{
+  background:var(--bg); color:var(--ink);
+  font-family:"Source Han Serif SC","Songti SC","Noto Serif CJK SC",-apple-system,"Segoe UI","Microsoft YaHei",serif;
+  font-size:15px; line-height:1.7; -webkit-font-smoothing:antialiased;
+  -webkit-text-size-adjust:100%; text-size-adjust:100%;
+  overflow:hidden;
+}
+button,input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
+button{cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+input,select,textarea{-webkit-appearance:none;appearance:none}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-thumb{background:#cfd6cd;border-radius:6px}
+::-webkit-scrollbar-track{background:transparent}
+.scroll-x{-webkit-overflow-scrolling:touch}
+
+/* ---------- 布局 ---------- */
+.app{
+  display:flex;flex-direction:column;overflow:hidden;
+  height:100vh; height:100dvh;
+}
+.topbar{
+  display:flex;align-items:center;gap:14px;background:var(--green);
+  color:#fff;flex:0 0 auto;box-shadow:0 1px 6px rgba(0,0,0,.12);z-index:20;
+  padding:10px 18px;
+  padding-top:calc(10px + env(safe-area-inset-top));
+  padding-left:calc(18px + env(safe-area-inset-left));
+  padding-right:calc(18px + env(safe-area-inset-right));
+}
+.menu-btn{display:none;flex:0 0 auto;width:34px;height:34px;border-radius:9px;
+  background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.3);color:#fff;
+  align-items:center;justify-content:center;padding:0}
+.menu-btn span,.menu-btn span::before,.menu-btn span::after{
+  display:block;width:16px;height:2px;background:#fff;border-radius:2px;position:relative;content:""}
+.menu-btn span::before{position:absolute;top:-5px;left:0}
+.menu-btn span::after{position:absolute;top:5px;left:0}
+.brand{font-size:17px;font-weight:700;letter-spacing:.5px;display:flex;align-items:center;gap:8px;min-width:0}
+.brand .bk{width:22px;height:26px;background:#e8f0e9;border-radius:2px 5px 5px 2px;position:relative;flex:0 0 auto}
+.brand .bk::after{content:"";position:absolute;left:3px;top:3px;right:3px;bottom:3px;border-left:2px solid var(--green);opacity:.5}
+.brand .b-name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.brand .b-ico{display:none;white-space:nowrap}
+.brand small{font-weight:400;font-size:12px;opacity:.85;letter-spacing:0}
+.topbar .spacer{flex:1}
+.tb-meta{font-size:12.5px;opacity:.9;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.pill{background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.25);padding:2px 9px;border-radius:20px;font-size:12px;white-space:nowrap}
+.pill.ok{background:rgba(255,255,255,.9);color:var(--green);border-color:#fff}
+.pill.warn{background:#7a4a12;border-color:#a8761f}
+
+.body{display:flex;flex:1;min-height:0;position:relative}
+.side{
+  width:246px;flex:0 0 auto;background:var(--panel);border-right:1px solid var(--line);
+  display:flex;flex-direction:column;min-height:0
+}
+.scrim{display:none;position:fixed;inset:0;background:rgba(20,28,24,.45);z-index:29}
+.scrim.on{display:block}
+.side-h{padding:11px 14px 8px;font-size:12.5px;color:var(--ink3);display:flex;align-items:center}
+.side-h .spacer{flex:1}
+.projlist{overflow:auto;flex:1;padding:0 8px 8px;-webkit-overflow-scrolling:touch}
+.proj{padding:11px 12px;border-radius:9px;cursor:pointer;margin-bottom:4px;border:1px solid transparent}
+.proj:hover{background:var(--panel2);border-color:var(--line2)}
+.proj.on{background:var(--greensoft);border-color:#c3ddd1}
+.proj .t{font-size:13.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.proj .s{font-size:11.5px;color:var(--ink3);margin-top:2px;display:flex;gap:8px}
+.side-f{padding:9px 10px;border-top:1px solid var(--line);display:flex;gap:6px;flex-wrap:wrap;
+  padding-bottom:calc(9px + env(safe-area-inset-bottom))}
+
+.main{flex:1;min-width:0;display:flex;flex-direction:column}
+.tabs{
+  display:flex;gap:2px;background:var(--panel);border-bottom:1px solid var(--line);
+  flex:0 0 auto;padding:8px 16px 0;overflow-x:auto;overflow-y:hidden;
+  scrollbar-width:none;-webkit-overflow-scrolling:touch
+}
+.tabs::-webkit-scrollbar{display:none}
+.tab{
+  padding:8px 15px;border:1px solid transparent;border-bottom:none;background:transparent;
+  border-radius:9px 9px 0 0;font-size:14px;color:var(--ink2);position:relative;top:1px;
+  white-space:nowrap;flex:0 0 auto
+}
+.tab:hover{background:var(--panel2)}
+.tab.on{background:var(--bg);border-color:var(--line);color:var(--green);font-weight:700}
+.tab .n{display:inline-block;width:17px;height:17px;line-height:17px;text-align:center;border-radius:50%;
+  background:var(--line);color:var(--ink2);font-size:11px;margin-right:6px;font-weight:700}
+.tab.on .n{background:var(--green);color:#fff}
+.tab.done .n::after{content:""}
+.tab .dot{position:absolute;top:6px;right:6px;width:7px;height:7px;border-radius:50%;background:var(--gold)}
+
+.work{flex:1;overflow:auto;padding:16px;-webkit-overflow-scrolling:touch;
+  padding-bottom:calc(16px + env(safe-area-inset-bottom))}
+.grid{display:grid;grid-template-columns:minmax(320px,1fr) minmax(360px,1.15fr);gap:16px;align-items:start}
+
+/* ---------- 卡片 ---------- */
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:16px;overflow:hidden}
+.card-h{padding:11px 15px;border-bottom:1px solid var(--line2);display:flex;align-items:center;gap:9px;background:var(--panel2)}
+.card-h h3{margin:0;font-size:14.5px;letter-spacing:.3px}
+.card-h .spacer{flex:1}
+.card-h .hint{font-size:12px;color:var(--ink3);font-weight:400}
+.card-b{padding:15px}
+.card-b.tight{padding:0}
+
+.field{margin-bottom:12px}
+.field:last-child{margin-bottom:0}
+.field > label{display:block;font-size:12.5px;color:var(--ink2);margin-bottom:5px;font-weight:600}
+.field .sub{font-size:11.5px;color:var(--ink3);font-weight:400;margin-left:6px}
+input[type=text],input[type=password],input[type=number],select,textarea{
+  width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:#fff;outline:none;
+  font-size:14px;transition:border-color .15s,box-shadow .15s
+}
+textarea{resize:vertical;line-height:1.65;font-size:13.5px}
+input:focus,select:focus,textarea:focus{border-color:var(--green2);box-shadow:0 0 0 3px rgba(46,138,103,.12)}
+.row{display:flex;gap:10px}
+.row > *{flex:1;min-width:0}
+.row3 > *{flex:1}
+
+.btn{
+  padding:7px 14px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink);
+  font-size:13.5px;transition:.15s;white-space:nowrap
+}
+.btn:hover{border-color:var(--green2);color:var(--green);background:var(--greensoft)}
+.btn.pri{background:var(--green);border-color:var(--green);color:#fff;font-weight:600}
+.btn.pri:hover{background:var(--green2);color:#fff}
+.btn.ghost{background:transparent;border-color:transparent;color:var(--ink2)}
+.btn.ghost:hover{background:var(--panel2);color:var(--ink)}
+.btn.sm{padding:4px 9px;font-size:12px;border-radius:6px}
+.btn.warn{border-color:#e6cdc0;color:#8a4a1f}
+.btn.warn:hover{background:#fdf4ee;border-color:#d9a480;color:#8a4a1f}
+.btn.danger{color:var(--red);border-color:#eccfcf}
+.btn.danger:hover{background:var(--redsoft);border-color:#dfa8a8}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btnbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+
+.chips{display:flex;flex-wrap:wrap;gap:7px}
+.chip{
+  padding:5px 11px;border:1px solid var(--line);border-radius:20px;background:#fff;font-size:13px;
+  cursor:pointer;transition:.13s;display:flex;align-items:center;gap:5px
+}
+.chip:hover{border-color:var(--green2);background:var(--greensoft)}
+.chip.on{background:var(--green);border-color:var(--green);color:#fff;font-weight:600}
+.chip .cat{font-size:10.5px;opacity:.6}
+
+.tip{font-size:12px;color:var(--ink3);line-height:1.6}
+.note{background:var(--goldsoft);border:1px solid #eadcbe;border-radius:9px;padding:9px 12px;font-size:12.5px;color:#6b5320}
+.note.green{background:var(--greensoft);border-color:#c9e0d5;color:#20513d}
+.note.blue{background:var(--bluesoft);border-color:#cddff0;color:#28496b}
+.note b{color:inherit}
+
+.kv{display:grid;grid-template-columns:auto 1fr;gap:2px 12px;font-size:12.5px}
+.kv dt{color:var(--ink3);white-space:nowrap}
+.kv dd{margin:0}
+
+/* 提示词 / 正文 显示区 */
+.doc{
+  background:#fcfdfb;border:1px solid var(--line);border-radius:9px;padding:13px 15px;
+  font-family:"Cascadia Mono","SF Mono",Consolas,"Microsoft YaHei",monospace;font-size:12.8px;line-height:1.75;
+  white-space:pre-wrap;word-break:break-word;max-height:460px;overflow:auto
+}
+.doc.serif{font-family:"Source Han Serif SC","Songti SC",Georgia,serif;font-size:14.5px;line-height:1.95;background:#fff}
+.edit-area{
+  width:100%;border:1px solid var(--line);border-radius:9px;padding:13px 15px;
+  font-family:"Source Han Serif SC","Songti SC",Georgia,serif;font-size:14.5px;line-height:1.95;
+  min-height:420px;background:#fff
+}
+.edit-area.mono{font-family:"Cascadia Mono",Consolas,monospace;font-size:12.8px;line-height:1.75;min-height:300px}
+
+/* 版本 / 文章列表 */
+.item{border:1px solid var(--line);border-radius:10px;margin-bottom:10px;background:#fff;overflow:hidden}
+.item.on{border-color:var(--green2);box-shadow:0 0 0 3px rgba(46,138,103,.1)}
+.item-h{padding:9px 12px;display:flex;align-items:center;gap:9px;background:var(--panel2);cursor:pointer}
+.item-h .t{font-size:13.5px;font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.item-h .m{font-size:11.5px;color:var(--ink3);white-space:nowrap}
+.item-b{padding:12px 14px;border-top:1px solid var(--line2)}
+.badge{font-size:11px;padding:1.5px 7px;border-radius:20px;background:var(--line);color:var(--ink2);white-space:nowrap}
+.badge.ok{background:#dcefe5;color:#1d6146}
+.badge.warn{background:#f6e6cd;color:#7d5514}
+.badge.bad{background:#f7dcdc;color:#8e2f2f}
+.badge.info{background:#dde9f5;color:#27506f}
+
+.wc{font-size:12px;color:var(--ink3);display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.wc .bar{width:88px;height:5px;background:var(--line);border-radius:3px;overflow:hidden;display:inline-block;vertical-align:middle}
+.wc .bar i{display:block;height:100%;background:var(--green2)}
+.wc .bar i.out{background:#d09a2f}
+.wc .bar i.over{background:var(--red)}
+
+/* 状态 */
+.status{font-size:12.5px;color:var(--ink2);padding:6px 0;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.spin{width:13px;height:13px;border:2px solid var(--line);border-top-color:var(--green2);border-radius:50%;animation:sp .7s linear infinite;flex:0 0 auto}
+@keyframes sp{to{transform:rotate(360deg)}}
+.log{background:#1f2724;color:#d7e3da;border-radius:9px;padding:10px 12px;font-family:"Cascadia Mono",Consolas,monospace;
+  font-size:12px;line-height:1.65;max-height:180px;overflow:auto;white-space:pre-wrap}
+.log .g{color:#7fd2a8}.log .y{color:#e0c069}.log .r{color:#e89090}
+
+/* 弹窗 / 提示 */
+.mask{position:fixed;inset:0;background:rgba(24,32,28,.42);display:none;align-items:center;justify-content:center;z-index:100;padding:20px}
+.mask.on{display:flex}
+.modal{background:#fff;border-radius:14px;max-width:820px;width:100%;max-height:86vh;max-height:86dvh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.25)}
+.modal-h{padding:14px 18px;border-bottom:1px solid var(--line);font-weight:700;display:flex;align-items:center;gap:10px}
+.modal-h .spacer{flex:1}
+.modal-b{padding:16px 18px;overflow:auto;-webkit-overflow-scrolling:touch}
+.modal-f{padding:12px 18px;border-top:1px solid var(--line);display:flex;gap:9px;justify-content:flex-end;background:var(--panel2);flex-wrap:wrap}
+.toast{
+  position:fixed;left:50%;bottom:34px;transform:translateX(-50%) translateY(20px);background:#1f2724;color:#fff;
+  padding:10px 20px;border-radius:24px;font-size:13.5px;opacity:0;pointer-events:none;transition:.25s;z-index:200;
+  max-width:min(86vw,520px);text-align:center;box-shadow:0 6px 20px rgba(0,0,0,.28)
+}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+.empty{text-align:center;color:var(--ink3);font-size:13px;padding:26px 10px}
+.empty .big{font-size:32px;opacity:.35;display:block;margin-bottom:8px}
+.secttl{font-size:12.5px;color:var(--ink3);margin:14px 0 8px;border-bottom:1px dashed var(--line);padding-bottom:5px}
+.secttl:first-child{margin-top:0}
+.split{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.mono-s{font-family:"Cascadia Mono",Consolas,monospace;font-size:11.8px}
+details.acc{border:1px solid var(--line);border-radius:9px;margin-bottom:8px;background:#fff}
+details.acc > summary{padding:8px 12px;cursor:pointer;font-size:13px;font-weight:600;list-style:none}
+details.acc > summary::-webkit-details-marker{display:none}
+details.acc > summary::before{content:"▸ ";color:var(--green2)}
+details.acc[open] > summary::before{content:"▾ "}
+details.acc .acc-b{padding:0 12px 12px;font-size:13px;color:var(--ink2)}
+details.acc .acc-b ul{margin:5px 0;padding-left:20px}
+details.acc .acc-b li{margin:3px 0}
+mark{background:#fff2b8;padding:0 2px;border-radius:2px}
+.topbtns{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.tb-btn{background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.3)}
+.tb-btn:hover{background:rgba(255,255,255,.28);color:#fff;border-color:rgba(255,255,255,.5)}
+.tb-ico{display:none;font-size:15px;line-height:1}
+
+/* =========================================================
+   手机 / 平板适配
+   ========================================================= */
+/* 统一的多行输入框：移动端给足高度，且禁止小屏横向拉伸 */
+.ta{width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:8px;background:#fff;
+  line-height:1.7;font-size:14px;resize:vertical;outline:none}
+.ta:focus{border-color:var(--green2);box-shadow:0 0 0 3px rgba(46,138,103,.12)}
+
+@media(max-width:1080px){
+  .grid{grid-template-columns:1fr}
+  /* 侧栏改为抽屉 */
+  .menu-btn{display:flex}
+  .side{
+    position:fixed;top:0;bottom:0;left:0;width:min(84vw,320px);z-index:30;
+    transform:translateX(-102%);transition:transform .22s ease;
+    box-shadow:6px 0 26px rgba(0,0,0,.2);border-right:1px solid var(--line);
+    padding-top:env(safe-area-inset-top)
+  }
+  .side.open{transform:translateX(0)}
+  /* 平板上品牌说明与状态条都收掉，避免顶栏换行 */
+  .brand small{display:none}
+  .tb-meta{display:none}
+}
+@media(max-width:760px){
+  .brand{font-size:15.5px}
+  .brand .bk{width:19px;height:22px}
+  /* 顶栏按钮收成图标，保证一行放得下 */
+  .tb-txt{display:none}
+  .tb-ico{display:inline}
+  .tb-btn{padding:8px 10px;min-width:36px;text-align:center}
+  .topbar{gap:9px}
+  .topbtns{gap:6px;flex-wrap:nowrap}
+  .tb-meta{gap:6px;flex-wrap:nowrap;overflow:hidden}
+  .topbar{gap:7px}
+  .topbar-tools{min-width:0;flex:0 1 auto}
+  .brand{min-width:0;flex:0 1 auto}
+  .work{padding:12px}
+  .card{border-radius:11px}
+  .card-h{padding:10px 12px;gap:7px;flex-wrap:wrap}
+  .card-h h3{font-size:14px}
+  .card-h .hint{font-size:11.5px}
+  .card-b{padding:12px}
+  .split{grid-template-columns:1fr}
+  .log{font-size:11.5px;max-height:150px}
+  .doc{font-size:12.2px;padding:11px 12px;max-height:340px}
+  .doc.serif,.edit-area{font-size:15px;line-height:1.9}
+  .edit-area{min-height:300px;padding:12px}
+  /* 触摸目标放大规则见下方 @media(pointer:coarse)，此处只处理版式 */
+  .item-h{padding:11px 12px;flex-wrap:wrap;gap:6px}
+  .item-h .t{max-width:100%;white-space:normal;line-height:1.45}
+  .item-h .m{font-size:11px}
+  .btnbar{gap:7px}
+  .kv{grid-template-columns:auto 1fr;font-size:12.5px}
+  .kv dd{word-break:break-word}
+  .modal{border-radius:12px;max-height:92vh;max-height:92dvh}
+  .modal-h{padding:12px 14px;font-size:14.5px}
+  .modal-b{padding:13px 14px}
+  .modal-f{padding:11px 14px}
+  .modal-f .btn{flex:1;text-align:center;justify-content:center}
+  .mask{padding:0;align-items:flex-end}
+  .modal{max-width:100%;width:100%;border-radius:14px 14px 0 0;max-height:94dvh}
+  .modal-f{padding-bottom:calc(11px + env(safe-area-inset-bottom))}
+  .mask{padding-bottom:0}
+  .toast{bottom:18px;bottom:calc(18px + env(safe-area-inset-bottom));font-size:13px;padding:10px 16px}
+  details.acc > summary{padding:11px 12px;font-size:13.5px}
+  input[type=text],input[type=password],input[type=number],select,textarea{font-size:16px}
+  .ta{font-size:16px}
+  .item-h .t{font-size:13.5px}
+  .wc{font-size:11.5px}
+  .proj{padding:12px 12px}
+  .side-h,.side-f{padding-left:12px;padding-right:12px}
+  .empty{padding:22px 8px}
+  .pop-width{max-width:100%}
+}
+/* 触屏设备：取消 hover 残留效果 */
+@media(hover:none){
+  .btn:hover{border-color:var(--line);color:var(--ink);background:#fff}
+  .btn.pri:hover{background:var(--green);color:#fff;border-color:var(--green)}
+  .btn.ghost:hover{background:transparent;color:var(--ink2)}
+  .btn.warn:hover{background:#fff;border-color:#e6cdc0;color:#8a4a1f}
+  .btn.danger:hover{background:#fff;border-color:#eccfcf;color:var(--red)}
+  .chip:hover{border-color:var(--line);background:#fff}
+  .chip.on:hover{background:var(--green);border-color:var(--green);color:#fff}
+  .tab:hover{background:transparent}
+  .tab.on:hover{background:var(--bg)}
+  .proj:hover{background:transparent;border-color:transparent}
+  .proj.on:hover{background:var(--greensoft);border-color:#c3ddd1}
+}
+/* 触摸设备：放大触摸目标。
+   为什么用 pointer:coarse 而不是只按屏幕宽度：iPad 和手机横屏屏幕很宽，
+   但同样是手指操作，只按宽度判断会漏掉它们。 */
+@media(pointer:coarse){
+  *{-webkit-tap-highlight-color:transparent}
+}
+/* 触摸目标放大：两条通道都要覆盖。
+   ① 粗指针（真手机/平板）
+   ② 窄视口（桌面浏览器把窗口拉窄时 pointer 仍是 fine，只有宽度条件能命中）
+   两条规则写在一起，确保任何一条成立都生效。 */
+@media(pointer:coarse), (max-width:820px){
+  .btn{padding:10px 14px;font-size:14px;border-radius:9px}
+  .btn.sm{padding:7px 11px;font-size:12.5px;border-radius:7px}
+  .chip{padding:9px 14px;font-size:13.5px}
+  .proj{padding:12px}
+  details.acc > summary{padding:11px 12px;font-size:13.5px}
+  .item-h{padding:11px 12px}
+  /* 窄屏/触摸设备上隐去文种后的模块小字，一行能放2—3个文种，少滑几屏 */
+  .chip .cat{display:none}
+}
+/* 标签栏：触摸设备一律加高；窄视口同样加高（放在放大规则之后，确保不被覆盖） */
+@media(pointer:coarse){
+  .tab{padding:9px 14px;font-size:13.5px}
+}
+@media(max-width:760px){
+  .tab{padding:9px 13px;font-size:13.5px}
+}
+@media(pointer:coarse) and (max-width:760px){
+  .tab{padding:9px 14px}
+}
+/* 横屏手机：压缩顶栏与标签，保证内容区高度 */
+@media(max-height:520px) and (orientation:landscape){
+  .topbar{padding-top:calc(6px + env(safe-area-inset-top));padding-bottom:6px}
+  .brand small{display:none}
+  .tabs{padding-top:5px}
+  .work{padding:10px}
+}
+/* 窄屏手机：品牌缩成四字，保证顶栏单行不换行 */
+@media(max-width:400px){
+  .brand .b-name{display:none}
+  .brand .b-ico{display:inline}
+  .brand{font-size:15px;letter-spacing:.2px}
+  .topbar{gap:7px;padding-left:calc(10px + env(safe-area-inset-left));padding-right:calc(10px + env(safe-area-inset-right))}
+  .tb-btn{padding:8px 9px;min-width:34px}
+  .topbtns{gap:5px}
+  .work{padding:10px}
+  .card-b{padding:11px}
+}
+/* 状态胶囊挪到正文里显示（窄屏顶栏放不下） */
+.mode-inline{display:none}
+@media(max-width:1080px){ .mode-inline{display:inline-flex} }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="topbar">
+    <button class="menu-btn" id="menuBtn" onclick="UI.toggleDrawer()" aria-label="打开项目列表"><span></span></button>
+    <div class="brand"><span class="bk"></span><span class="b-name">应用文写作工坊</span><span class="b-ico">写作工坊</span><small>提示词打磨 → 多篇成稿 → 随意修改</small></div>
+    <div class="spacer"></div>
+    <div class="topbar-tools">
+      <div class="tb-meta" id="tbMeta"></div>
+    </div>
+    <div class="topbtns">
+      <button class="btn sm tb-btn" onclick="UI.openSettings()" aria-label="接口设置"><span class="tb-txt">接口设置</span><span class="tb-ico">⚙</span></button>
+      <button class="btn sm tb-btn" onclick="UI.openBook()" aria-label="教材依据"><span class="tb-txt">教材依据</span><span class="tb-ico">📖</span></button>
+      <button class="btn sm tb-btn" onclick="UI.openBackup()" aria-label="备份与迁移"><span class="tb-txt">备份</span><span class="tb-ico">💾</span></button>
+    </div>
+  </div>
+
+  <div class="body">
+    <div class="scrim" id="scrim" onclick="UI.closeDrawer()"></div>
+    <aside class="side" id="side">
+      <div class="side-h">写作项目<span class="spacer"></span><button class="btn sm ghost" onclick="App.newProject()">+ 新建</button></div>
+      <div class="tip" style="padding:0 14px 8px">点项目名切换项目，每篇文章、每个提示词版本都存在项目里。</div>
+      <div class="projlist scroll-x" id="projList"></div>
+      <div class="side-f">
+        <button class="btn sm" onclick="UI.openBackup()">导入/导出</button>
+        <button class="btn sm" onclick="UI.openBook()">文种手册</button>
+      </div>
+    </aside>
+
+    <main class="main">
+      <div class="tabs" id="tabs"></div>
+      <div class="work" id="work"></div>
+    </main>
+  </div>
+</div>
+
+<div class="mask" id="mask"><div class="modal" id="modal"></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* =========================================================================
+   应用文写作工坊 —— 单文件本地网页应用
+   内容底座：《应用文写作（双色）（含微课）》
+             上海交通大学出版社 “十四五”职业教育国家规划教材
+             主审 张玉霞　主编 李永霞、陈志洁、王娟
+             结构：绪论 + 6 个模块 36 个任务
+   工作流：填需求 → 生成提示词 → 按意见自我优化升级 → 按字数批量出稿 → 随意修改
+   ========================================================================= */
+
+/* ------------------------- 一、文种知识库（教材章节） ------------------------- */
+/* =========================================================================
+   文种知识库（按用户指定教材重写）
+   依据：《应用文写作（双色）（含微课）》
+         上海交通大学出版社  "十四五"职业教育国家规划教材
+         主审 张玉霞   主编 李永霞、陈志洁、王娟
+         ISBN 978-7-313-25401-6   结构：绪论 + 6 个模块 + 36 个任务
+   每个文种的“结构框架/写法要点”按该书“概念—特点—种类—结构与写法—
+   注意事项”的任务体例整理；括注的为该书未单列、按同体例补全的文种。
+   ========================================================================= */
+const BOOK = {
+  name:'《应用文写作（双色）（含微课）》',
+  press:'上海交通大学出版社',
+  reviewer:'张玉霞',
+  editors:'李永霞、陈志洁、王娟',
+  isbn:'978-7-313-25401-6',
+  level:'“十四五”职业教育国家规划教材',
+  layout:'绪论 + 6 个模块 36 个任务（项目引导、任务驱动）'
+};
+const BOOKS = [BOOK];
+
+const GENRES = [
+/* ============ 模块一 日常应用文书写作 ============ */
+{
+  id:'tiaoju', name:'条据', group:'日常应用文书', proj:'模块一 日常应用文书写作 · 任务一 掌握条据的结构与写法', alt:'收条 / 借条 / 欠条 / 领条 / 请假条 / 留言条',
+  scene:'日常收付、借还、领发、请假等需要留字为凭的场合',
+  struct:['标题：居中写文种名，如“借条”“收条”“欠条”“领条”“请假条”“留言条”','正文：写清事由、标的（钱物名称、数量、规格）、时间、归还或办理期限','署名：出具人亲笔签名（重要条据按手印）','日期：年月日写全'],
+  format:['说明性条据（请假条、留言条）：称谓＋事由＋请求＋署名＋日期，语气客气','凭证性条据（借条、收条、领条、欠条）：不需称谓，直接写“今借到/今收到/今领到”','金额、数量用汉字大写并加“整”字，后附阿拉伯数字，防止篡改','数字、期限不得涂改；确需改动，改动处要签名或盖章','“借条”写“今借到”，证明借用关系；“欠条”写明欠款原因和还款期限'],
+  style:'极简、准确、无废话，一个字都不能含糊',
+  avoid:['不要写客套话和感情色彩','凭证性条据不要用阿拉伯数字写金额','不要漏归还日期和签名'],
+  sample:'借  条\n\n今借到财务科人民币叁仟元整（¥3000.00），用于××项目差旅预支，定于2025年7月31日前凭票据结清。\n\n                                    借款人：张伟（签名）\n                                    2025年6月1日'
+},
+{
+  id:'shuxin', name:'一般书信', group:'日常应用文书', proj:'模块一 日常应用文书写作 · 任务二 掌握书信的结构与写法', alt:'家书 / 问候信',
+  scene:'亲友、师生、同学之间传递信息、交流感情',
+  struct:['称谓：顶格写，后加冒号（如“爸爸”“王老师”）','问候语：另起一行空两格（如“您好”“近来可好”）','正文：另起一行空两格，可分事项分段，一事一段','祝颂语：“此致”另起一行空两格，“敬礼”顶格；或“祝身体健康”','署名与日期：右下方分行书写'],
+  format:['格式重于文采：称谓、问候、正文、祝颂、署名、日期六项齐全','收信人称谓要符合关系和辈分，不用官称替代亲情称谓','信末可加附言（另起一行写“又及”）','语言要口语化、有温度，像面对面说话'],
+  style:'自然、亲切、有生活细节，不刻意修辞',
+  avoid:['不要写成公文行文口吻','不要通篇客套没有实质内容','不要漏祝颂语和日期'],
+  sample:'王老师：\n\n    您好！\n    离开学校已经半年了，一直想给您写信……\n    此致\n敬礼\n\n                                    学生  李明\n                                    2025年6月1日'
+},
+{
+  id:'chanpinshuoming', name:'产品说明书', group:'日常应用文书', proj:'模块一 日常应用文书写作 · 任务二（三、产品说明书）',
+  scene:'随产品提供的使用、安装、维护说明',
+  struct:['封面：产品名称、型号、商标、生产企业','目录（篇幅长时）','正文：① 产品概述与用途 ② 主要技术参数 ③ 结构、部件名称 ④ 安装与使用方法 ⑤ 维护保养 ⑥ 注意事项与安全警告 ⑦ 常见故障与排除','附录：保修条款、售后服务联系方式'],
+  format:['以用户看不懂就问不到人为标准，步骤要说清“先做什么、再做什么”','技术参数用表格，单位统一','安全警示必须醒目，一般置于正文前或相关步骤旁','图、符号、编号要与实物对应'],
+  style:'客观、精确、条理清楚，多用短句和祈使句',
+  avoid:['不要用文学化描写和广告吹嘘语','不要出现“大约”“可能”这类模糊表述','不要漏安全注意事项'],
+  sample:'××型电热水壶使用说明书\n\n一、产品用途\n    本产品适用于家庭、办公室烧煮饮用水。\n二、主要技术参数\n    额定电压：220V～50Hz　额定功率：1500W　容量：1.7L\n三、使用方法\n    1. 加水至刻度线以下……\n四、安全警告\n    ·注水不得超过最高水位线，以防溢出触电。'
+},
+{
+  id:'zhengmingxin', name:'证明信', group:'日常应用文书', proj:'模块一 日常应用文书写作 · 任务二（四、证明信）',
+  scene:'单位或个人证明身份、经历、事实等情况',
+  struct:['标题：证明信（或“关于××的证明”）','称谓：顶格写收信单位名称','正文：写清被证明人的姓名、身份及需要证明的事实，实事求是','结尾：“特此证明”','落款：出具证明单位名称＋盖章；个人出具的签名并注明身份','日期'],
+  format:['证明内容必须有据可查，写明依据（如档案记载、原始凭证）','只证明事实，不作评价、不担保留','需写明证明的有效期限或用途，防止被挪用','单位出具的证明必须加盖公章才有效'],
+  style:'平实、简洁、准确，不加修饰',
+  avoid:['不要出具虚假证明','不要使用“大概”“好像”等不确定表述','不要画蛇添足写评价性语言'],
+  sample:'证  明  信\n\n××银行××支行：\n    兹证明李明同志（身份证号××××）系我院2021年9月入职的在编教师，现任讲师职务。\n    特此证明。\n\n                                    ××学院（盖章）\n                                    2025年6月1日'
+},
+{
+  id:'changyishu', name:'倡议书', group:'日常应用文书', proj:'模块一 日常应用文书写作 · 任务二（五、倡议书）',
+  scene:'面向公众或群体公开提出建议、号召共同行动',
+  struct:['标题：关于××的倡议书（或只写“倡议书”）','称谓：顶格写倡议对象（如“全体同学”）','正文：① 倡议背景与缘由（为什么发起）② 倡议内容（分条，写清希望大家做什么、怎么做）③ 号召与希望','落款：倡议者名称＋日期'],
+  format:['倡议对象要明确，内容要可操作（做什么、什么时候做、做到什么程度）','语气是“倡导”不是“命令”，无强制力','分条一般3—6条，条条能落地','倡议者署名要真实，增强可信度'],
+  style:'诚恳、有感染力的同时要有具体办法，避免纯口号',
+  avoid:['不要写成通知（不能用“望遵照执行”）','不要只有口号没有具体做法','不要过度抒情占满篇幅'],
+  sample:'关于节约用电的倡议书\n\n全体师生：\n    近期教学楼用电量明显上升……为此，我们向全体师生发出如下倡议：\n    一、离开教室随手关灯关空调……\n                                    ××学院学生会\n                                    2025年6月1日'
+},
+{
+  id:'shenqingshu', name:'申请书', group:'日常应用文书', proj:'模块一 日常应用文书写作 · 任务二（六、申请书）',
+  scene:'个人或下级向组织、上级提出请求，请求批准',
+  struct:['标题：关于××的申请（或“申请书”“入党申请书”）','称谓：顶格写受理单位/组织/领导','正文：① 申请事项（开门见山说清申请什么）② 申请理由（事实＋依据，可分条）③ 自身条件或已做努力 ④ 态度与承诺（“恳请批准”）','结尾敬语：“此致敬礼”','落款：申请人签名＋日期'],
+  format:['一文一事，理由要具体可查（成绩、困难、政策依据）','称谓必须是能批准这件事的部门','态度诚恳，不用“必须批”“望速批”这类施压语气','涉及时间、地点、数量的事实要精确'],
+  style:'朴实、诚恳、条理清楚，理由实打实',
+  avoid:['不要写成抒情散文','不要空喊“我深知……我立志……”占大半篇幅','不要漏掉在校/在岗现实表现的支撑'],
+  sample:'关于申请国家助学金的申请\n\n××学院学生工作办公室：\n    本人系××专业2023级学生，现申请2024—2025学年国家助学金，理由如下：\n    一、家庭情况……\n    二、在校表现……\n    恳请审核批准。\n\n                                    申请人：李小雨\n                                    2024年10月8日'
+},
+{
+  id:'qishi', name:'启事', group:'日常应用文书', proj:'模块一 日常应用文书写作 · 任务三 掌握启事的结构与写法',
+  scene:'公开告知某事项并希望公众周知、参与或协助',
+  struct:['标题：××启事（如“招领启事”“征稿启事”“招聘启事”）','正文：事项缘由＋具体要求（条件、时间、地点、联系方式、截止时间）','落款：发布单位＋日期'],
+  format:['启事是公开说明＋请求配合，不具有强制性和行政约束力','招领启事不写物品细节特征，只写名称和大致数量，防止冒领','联系方式必须写全：联系人、电话、地址、邮箱','报名方式、截止时间分条列出，便于阅读'],
+  style:'简明、条理清楚，像贴在公告栏上的直白文字',
+  avoid:['不要写成通知（“望遵照执行”是错的）','不要漏联系电话和联系人','不要用文学化标题'],
+  sample:'招 领 启 事\n\n    6月3日下午，本馆工作人员在二楼自习区拾到手提包一个，内有若干物品。\n    请失主携带本人学生证到图书馆一楼服务台认领。\n    联系人：陈老师　电话：021-12345678\n\n                                        校图书馆\n                                        2025年6月4日'
+},
+{
+  id:'dushubiji', name:'读书笔记', group:'日常应用文书', proj:'模块一 日常应用文书写作 · 任务四 掌握读书笔记的表现形式与写法',
+  scene:'阅读书刊后记录心得、摘录要点',
+  struct:['常用形式：① 摘录式 ② 提纲式 ③ 心得式（读后感）④ 批注式 ⑤ 卡片式','摘录式：注明书名、作者、版本、页码，原文照抄加引号','提纲式：按原书结构提炼要点，分层列出','心得式：简述所读内容＋联系自身经历或现实问题＋自己的看法'],
+  format:['摘录必须注明出处（书名、作者、出版社、页码），便于查证','区分“原文”与“自己的话”，引用加引号','心得式重点在“感”，不能大段复述原文','篇幅不限，但要有自己的判断，不是内容简介'],
+  style:'第一人称、平实，允许个人口吻和疑问',
+  avoid:['不要把读书笔记写成内容摘要（那是提纲，不是心得）','不要只抄不想','不要漏出处信息'],
+  sample:'《×××》读书笔记\n\n书名：×××　作者：×××　出版社：××出版社　页码：P45—P60\n一、内容提纲\n二、摘录\n三、我的想法\n    这一点让我想起上学期……'
+},
+{
+  id:'shixibaogao', name:'实习报告', group:'日常应用文书', proj:'模块一 日常应用文书写作 · 任务五 掌握实习报告的结构与写法',
+  scene:'实习结束后向学校提交的总结性材料',
+  struct:['标题：《××（单位）实习报告》','前言：实习时间、单位、岗位、目的（简短）','主体：① 实习单位与岗位概况 ② 实习内容与过程（按时间或按任务分条，要有具体事）③ 收获与体会 ④ 存在的不足 ⑤ 对实习与课程的建议（可选）','落款：姓名、学号、专业班级＋日期'],
+  format:['必须有事例、有细节、有个人思考，不能只抄单位简介','把课堂知识与岗位任务挂钩，体现专业性','按学校规定字数（一般2000—4000字）','反映真实问题，不虚构不夸大'],
+  style:'第一人称、平实、有细节',
+  avoid:['不要通篇“我学到了很多”“收获颇丰”','不要大段复制单位官网介绍','不要虚报工作内容'],
+  sample:'××科技有限公司实习报告\n\n一、实习概况\n    实习时间：2024年7月1日—8月30日　岗位：前端开发实习生\n二、实习内容\n三、收获与体会\n四、不足与建议'
+},
+{
+  id:'biyesheji', name:'毕业设计报告', group:'日常应用文书', proj:'模块一 日常应用文书写作 · 任务六 掌握毕业设计报告的结构与写法',
+  scene:'毕业设计完成后提交的设计说明与技术报告',
+  struct:['前置：封面、摘要、关键词、目录','正文：① 设计任务与要求（课题来源、目标、技术指标）② 方案论证与选择（比较几种方案并说明取舍理由）③ 设计计算与实施过程 ④ 结果测试与分析 ⑤ 结论与改进方向','附录：图纸、程序清单、测试数据','参考文献、致谢'],
+  format:['突出“设计过程”，重点是方案怎么选、参数怎么定、问题怎么解决','数据、图表、计算过程要有依据，可复核','图纸、程序、实物与正文对应','区别于论文：论文重论证观点，设计报告重实施过程'],
+  style:'客观、准确、书面语，多用专业术语',
+  avoid:['不要只写结果不写过程','不要与毕业论文混为一谈','不要出现无法复现的数据'],
+  sample:'××控制系统毕业设计报告\n\n一、设计任务与技术要求\n二、总体方案论证\n三、硬件设计与实现\n四、软件设计\n五、测试结果与分析\n六、结论'
+},
+
+/* ============ 模块二 求职应聘文书写作 ============ */
+{
+  id:'jianli', name:'个人简历', group:'求职应聘文书', proj:'模块二 求职应聘文书写作 · 任务一 掌握个人简历的结构与写法',
+  scene:'求职、实习、保研、评优时提交的个人情况简表',
+  struct:['基本信息：姓名、性别、出生年月、政治面貌、籍贯、电话、邮箱（照片可选）','教育背景：时间倒序，学校、专业、学位、主修课程、成绩排名、奖学金','实践与实习经历：时间倒序，单位＋岗位＋做了什么＋结果（尽量数据化）','校园经历/项目/科研：角色与成果','技能与证书：外语、计算机、职业资格','自我评价（可选，2—3行，不空泛）'],
+  format:['一页为宜，最多两页；简历不是自传','时间倒序排列，格式统一','经历用“动词＋事情＋结果”写，避免整段叙述','数字真实可查（如“策划活动3场，参与400余人”），不夸大不虚构','排版简洁，不用花哨模板和彩色色块（国企、事业单位尤其）'],
+  style:'名词短语、短句为主，不加修饰词',
+  avoid:['不要写“精通××”却没有证据','不要留大片空白或写错联系方式','不要一份简历投所有岗位'],
+  sample:'李  明\n电话：138××××8888　邮箱：liming@××.com\n\n教育背景\n2021.09—2025.06　××大学　计算机科学与技术　本科\n主修课程：数据结构、计算机网络……\n\n实习经历\n2024.07—2024.09　××科技公司　前端开发实习生\n·独立完成××模块开发，上线后页面加载速度提升30%'
+},
+{
+  id:'qiuzhixin', name:'求职信', group:'求职应聘文书', proj:'模块二 求职应聘文书写作 · 任务二 掌握求职信的结构与写法',
+  scene:'向用人单位毛遂自荐，争取面试机会',
+  struct:['称谓：顶格写单位人事部门或具体负责人','正文：① 从何处获知招聘信息＋应聘岗位 ② 自身条件与岗位匹配点（专业、经历、技能、证书，用数据）③ 对单位的了解与求职意愿 ④ 期待面试并附联系方式','结尾敬语：“此致敬礼”','附件：简历、证书复印件','落款：姓名＋日期'],
+  format:['一岗一信，针对该岗位要求逐条对应','用事实说话：项目、实习、比赛、成绩排名、证书等级','篇幅控制在一页，600—900字最佳','联系方式写在正文或结尾，不要只放在附件里'],
+  style:'自信、务实、不谄媚，用动词开头写经历',
+  avoid:['不要群发式“贵单位是我向往已久的”套话','不要用“给我一个机会，还您一个惊喜”这类广告腔','不要只写“我性格开朗、吃苦耐劳”这类无证据评价','不要出现错别字和错误单位名称'],
+  sample:'求 职 信\n\n××科技有限公司人力资源部：\n    我是××大学计算机科学与技术专业2025届毕业生李明，从学校就业信息网获悉贵公司招聘前端开发工程师，特此应聘。\n    在校期间……\n                                   李明\n                                    2024年11月5日'
+},
+{
+  id:'ziwojianding', name:'自我鉴定', group:'求职应聘文书', proj:'模块二 求职应聘文书写作 · 任务三 掌握自我鉴定的结构与写法',
+  scene:'毕业、转正、评优、政审时对自己一段时期表现的自我评价',
+  struct:['标题：自我鉴定（或“××年度自我鉴定”）','正文：① 思想方面 ② 学习（工作）方面 ③ 能力与作风方面 ④ 存在的不足 ⑤ 今后努力方向','落款：本人签名＋日期'],
+  format:['一般用第一人称，篇幅300—1000字','评价要与事实对应，成绩有依据，不足不回避','四方面内容要平衡，不能只报成绩','语气不卑不亢，既不自夸也不过度自贬'],
+  style:'平实、诚恳、分条清楚',
+  avoid:['不要写成申请书（不要写“恳请批准”）','不要通篇形容词没有事实','不要把自己的不足写成“有时过于认真”这类变相表扬'],
+  sample:'自 我 鉴 定\n\n    大学四年，本人在思想、学习、工作等方面均有进步。\n    一、思想方面……\n    二、学习方面……\n    三、存在的不足……\n                                    李明\n                                    2025年6月10日'
+},
+{
+  id:'jingpin', name:'竞聘词', group:'求职应聘文书', proj:'模块二 求职应聘文书写作 · 任务四 掌握竞聘词的结构与写法', alt:'竞聘演讲稿',
+  scene:'内部岗位竞聘、班干部竞选、岗位公开选拔的现场演讲',
+  struct:['称谓：“各位领导、各位同事”','开头：表明竞聘岗位＋个人基本情况','主体：① 竞聘条件（与岗位要求对应的经历、能力、成绩）② 对岗位的理解与工作思路（重点，要有具体举措）③ 表态（当选怎么做，落选怎么做）','结尾：致谢'],
+  format:['演讲时间一般5—8分钟，1500字以内为宜','工作思路要具体到“我上任后三个月干什么”，不能只说“我会努力”','有观点、有办法、有担当，可以承认短板并说明弥补办法','口播稿用短句，便于念'],
+  style:'口语化、有感染力，但每句都要有内容，避免纯表态',
+  avoid:['不要通篇表决心、喊口号','不要贬低其他竞聘者','不要照抄网上通用竞聘稿'],
+  sample:'各位领导、各位同事：\n\n    大家好！我竞聘的岗位是市场部经理。我叫张伟，2018年入职，一直在市场部工作……'
+},
+
+/* ============ 模块三 党政机关公文写作 ============ */
+{
+  id:'tongzhi', name:'通知', group:'党政机关公文', proj:'模块三 党政机关公文写作 · 任务二 掌握通知的结构与写法', alt:'指示性 / 知照性 / 事务性通知',
+  scene:'批转转发文件、布置工作、传达事项、告知会议',
+  struct:['标题：发文机关＋事由＋通知（如《××学院关于开展××工作的通知》）','主送机关：顶格＋冒号','正文：① 通知缘由（依据、目的，一句话交代）② 通知事项（分条：谁、做什么、什么时间、什么要求）③ 执行要求（“请遵照执行”“请于×月×日前报送”）','落款：发文机关＋日期（加盖印章）'],
+  format:['一份通知原则上只说一件事；会议通知要写清时间、地点、参会人员、议题、需带材料','标题中已有发文机关，落款处仍要有发文机关署名','日期用阿拉伯数字全写（2025年6月1日）','事务性通知（如放假通知）可简化格式，但要素不能少'],
+  style:'庄重、明确、无歧义，多用分条',
+  avoid:['不要用“希望大家”这类商量口吻（通知带指令性）','不要漏主送机关','不要把通知写成倡议书'],
+  sample:'××学院关于开展2025年学风建设月活动的通知\n\n各系、各班级：\n    为进一步加强学风建设，经研究，决定开展2025年学风建设月活动。现将有关事项通知如下：\n    一、活动时间……\n    二、活动内容……\n    三、工作要求……\n                                    ××学院\n                                    2025年3月3日'
+},
+{
+  id:'tongbao', name:'通报', group:'党政机关公文', proj:'模块三 党政机关公文写作 · 任务三 掌握通报的结构与写法', alt:'表彰性 / 批评性 / 情况通报',
+  scene:'表彰先进、批评错误、传达重要情况',
+  struct:['标题：发文机关＋事由＋通报','主送机关','正文：① 情况概述（时间、地点、人物、事件经过、结果）② 分析评价（性质、意义或危害、原因）③ 决定事项（表彰/处理决定）④ 希望与要求','落款：发文机关＋日期'],
+  format:['事实必须准确、核实，批评性通报涉及人名单位要慎重','表彰性通报要写清先进事迹的具体表现，不要只写“表现突出”','批评性通报要指出教训，不止于处理结果','情况通报侧重通报情况、提出要求，可不写处理决定'],
+  style:'严肃、客观，评价用语有分寸',
+  avoid:['不要把通报写成新闻消息','不要在批评通报里出现未经认定的事实','不要缺少“希望要求”这一层'],
+  sample:'关于表彰2024年度优秀学生干部的通知……（通报略）'
+},
+{
+  id:'baogao', name:'报告', group:'党政机关公文', proj:'模块三 党政机关公文写作 · 任务四 掌握报告的结构与写法', alt:'工作报告 / 情况报告 / 答复报告',
+  scene:'向上级汇报工作、反映情况、答复询问',
+  struct:['标题：发文机关＋事由＋报告','主送机关：直接上级机关','正文：① 报告缘由（依据或背景）② 主要情况/工作（分条，有数据）③ 存在问题 ④ 下一步打算','结束语：“特此报告”“以上报告，请审阅”','落款：发文机关＋日期'],
+  format:['报告是陈述性公文，不要求上级答复，不得夹带请示事项','一文一事或一文一主题，篇幅长的用小标题分层','数据、事例要真实，涉及重大情况按程序报送'],
+  style:'平实、简洁、层次清楚',
+  avoid:['报告中不得写“请批准”“请批复”','不要写成口播汇报稿'],
+  sample:'××学院关于2025年上半年学生就业工作情况的报告\n\n××大学：\n    ……现将有关情况报告如下：\n    一、基本情况\n    二、主要做法\n    三、存在问题\n    四、下一步打算\n    特此报告。'
+},
+{
+  id:'qingshi', name:'请示', group:'党政机关公文', proj:'模块三 党政机关公文写作 · 任务五 掌握请示的结构与写法',
+  scene:'向上级请求指示或批准，需要上级答复',
+  struct:['标题：发文机关＋事由＋请示','主送机关：只写一个直接上级机关','正文：① 请示缘由（情况、困难、依据，要充分，占一半篇幅）② 请示事项（明确具体，写清请批什么）③ 结束语：“妥否，请批示”“以上请示，请批复”','落款：发文机关＋日期'],
+  format:['一文一事；不得多头主送；不得越级请示','不得直接送领导者个人','事由与事项要匹配，不要在一份里问三件事','可以在请示中提出建议方案供上级选择'],
+  style:'恳切、理由充分、事项明确',
+  avoid:['不要写成报告（缺“请批复”就不是请示）','不要先斩后奏','不要用“请务必批准”'],
+  sample:'××学院关于申请增拨实验室建设经费的请示\n\n××大学：\n    我院现有实验室……（说明困难与必要性）\n    为此，拟申请增拨经费人民币××万元，用于……\n    妥否，请批示。'
+},
+{
+  id:'pifu', name:'批复', group:'党政机关公文', proj:'模块三 党政机关公文写作 · 任务六 掌握批复的结构与写法',
+  scene:'上级机关答复下级机关的请示',
+  struct:['标题：发文机关＋事由＋批复','主送机关：请示单位','正文：① 引语（引述来文标题及发文字号，如“你院《关于……的请示》（×字〔2025〕×号）收悉”）② 批复意见（同意/原则同意/不同意；同意的提要求，不同意的说明理由）③ 结束语：“此复”“特此批复”','落款：发文机关＋日期'],
+  format:['批复必须针对请示事项，一事一批','表态明确，不能含糊拖延','原则同意时要写明保留意见或附加条件'],
+  style:'简洁、明确、有决断',
+  avoid:['不要与请示事项不一致','不要绕过下级机关向个人答复'],
+  sample:'××大学关于同意××学院增设××专业的批复\n\n××学院：\n    你院《关于增设××专业的请示》（×院字〔2025〕8号）收悉。经研究，批复如下：\n    一、同意……\n    二、请按……要求做好准备工作。\n    此复。'
+},
+{
+  id:'jueding', name:'决定', group:'党政机关公文', proj:'模块三 党政机关公文写作 · 任务七 掌握决定的结构与写法',
+  scene:'对重要事项作出决策和部署、奖惩有关单位及人员',
+  struct:['标题：发文机关＋事由＋决定','主送机关（会议通过的决定常不写主送）','正文：① 决定缘由（依据、目的）② 决定事项（分条，明确具体）③ 执行要求','落款：发文机关＋日期（会议通过的注明会议名称和通过日期）'],
+  format:['决定是下行文，具有权威性和强制性','决定事项要明确到“谁、做什么、何时完成”','表彰决定要写清事迹与授予的称号；处分决定要写明依据与处理结果'],
+  style:'庄重、简练、语气坚决',
+  avoid:['不要把决定写成通知（决定重决策，通知重布置）','不要含糊表述处理意见'],
+  sample:'××学院关于授予李明等10名同学“优秀学生干部”称号的决定\n\n各系、各班级：\n    2024年度……经学院研究，决定授予李明等10名同学“优秀学生干部”称号。\n                                    ××学院\n                                    2025年1月8日'
+},
+{
+  id:'han', name:'函', group:'党政机关公文', proj:'模块三 党政机关公文写作 · 任务八 掌握函的结构与写法', alt:'商洽函 / 询问函 / 答复函 / 请批函',
+  scene:'不相隶属机关之间商洽工作、询问答复问题、请求批准',
+  struct:['标题：发函机关＋事由＋函','主送机关','正文：① 缘由（一句话说明来由）② 事项（商洽/询问/告知/答复什么）③ 结语：商洽用“请予支持”“望函复”，询问用“请予告知”，答复用“此复”“特此函复”','落款：发函机关＋日期'],
+  format:['平行文，语气平等礼貌，不用命令式','商洽事项要给出可操作的方案和时间','答复函要对应来函内容逐项回复'],
+  style:'简洁、客气、直接',
+  avoid:['不要用“请示”的口气对平级单位','不要用“务必”这类指令词'],
+  sample:'××学院关于商请借用体育馆举办活动的函\n\n××大学体育部：\n    我院定于5月20日举办……因场地所限，拟借用贵部体育馆（14:00—17:00）。\n    如蒙同意，请予函复。\n                                    ××学院\n                                    2025年5月12日'
+},
+
+/* ============ 模块四 礼仪文书写作 ============ */
+{
+  id:'yaoqinghan', name:'邀请函', group:'礼仪文书', proj:'模块四 礼仪文书写作 · 任务一 掌握邀请函、请柬和名片的结构与写法',
+  scene:'邀请单位或个人参加活动，比请柬更便于说明缘由',
+  struct:['标题：邀请函（或《关于××活动的邀请函》）','称谓：顶格写被邀请单位/个人','正文：① 活动背景与目的 ② 时间、地点、内容安排 ③ 邀请对象与人数 ④ 需对方准备或回复的事项 ⑤ 联系人与电话','结尾：“敬请光临”“盼复”','落款：邀请单位＋日期'],
+  format:['与请柬的区别：邀请函可以展开说明活动内容，请柬只写要素、更庄重简洁','必须写清回复方式与截止时间（便于统计人数）','多人参加的写清是否可带随行人员'],
+  style:'客气、周详，信息完整',
+  avoid:['不要只写“诚邀参加”却没有时间地点','不要漏联系人和回复期限'],
+  sample:'邀 请 函\n\n××公司：\n    为加强校企合作，我院定于2025年6月20日（星期五）上午9时在学院报告厅举办2025年校企合作洽谈会。\n    诚邀贵公司人力资源部负责人1—2人参加。如蒙应允，请于6月15日前回复。\n    联系人：王老师　电话：021-12345678\n                                    ××学院\n                                    2025年6月5日'
+},
+{
+  id:'qingjian', name:'请柬', group:'礼仪文书', proj:'模块四 礼仪文书写作 · 任务一 掌握邀请函、请柬和名片的结构与写法', alt:'请帖',
+  scene:'会议、庆典、婚礼、展览、开业、校庆等正式邀请宾客',
+  struct:['封面/标题：印“请柬”或“请帖”二字','称谓：顶格写被邀请者姓名＋称呼（先生/女士/老师），后有冒号','正文：活动名称、时间（公历＋星期＋上下午＋具体时刻）、地点（详细到门牌/馆厅）、事由','敬语：“敬请光临”“敬请届时光临指导”','落款：邀请者名称＋发出日期'],
+  format:['请柬是“帖”不是“信”，庄重简洁，一张纸说清一件事','时间写到“×年×月×日（星期×）上午×时”，不写“届时”这类模糊说法','地点写到可导航的详细程度','称谓准确，不用“亲爱的”这类亲昵词（亲友婚礼除外）','被邀请人若有配偶或随行人员，要写“及夫人/先生”或“携家属”'],
+  style:'庄重、客气、简短，不用感叹号堆砌',
+  avoid:['不要写成通知口吻','不要出现“请务必参加”这类命令式','不要长篇介绍活动背景'],
+  sample:'请  柬\n\n尊敬的王建国老师：\n\n    兹定于2025年6月18日（星期三）上午9时30分，在××学院图书馆报告厅举行2025届毕业生毕业典礼。\n    敬请光临指导。\n\n                                        ××学院\n                                    2025年6月10日'
+},
+{
+  id:'mingpian', name:'名片', group:'礼仪文书', proj:'模块四 礼仪文书写作 · 任务一 掌握邀请函、请柬和名片的结构与写法',
+  scene:'社交场合自我介绍、业务往来留存联系方式',
+  struct:['单位名称（含标识）：一般置于上方或左上方','姓名＋职务/职称：居中，姓名可加大字号','联系方式：电话、手机、邮箱、地址、邮编、网址','（背面）经营范围、业务范围、开户行账号，或外文对照'],
+  format:['信息必须准确，电话、邮箱反复核对','要素精简，一般5—7项，不堆砌头衔','职务与单位要相符，一人多职时择要列1—2个','外文对照时，姓名用汉语拼音，地址由小到大排列'],
+  style:'极简，只有信息没有句子',
+  avoid:['不要印口号、格言、广告语占满版面','不要漏电话号码或写错区号','不要使用与身份不符的头衔'],
+  sample:'××科技有限公司\n\n李  明\n市场部经理\n\n手机：138××××8888\n电话：021-12345678\n邮箱：liming@××.com\n地址：××市××区××路88号'
+},
+{
+  id:'yingsongci', name:'迎送词', group:'礼仪文书', proj:'模块四 礼仪文书写作 · 任务二 掌握迎送词的结构与写法', alt:'欢迎词 / 欢送词',
+  scene:'迎接或送别来宾、新生、毕业生、挂职干部等场合致辞',
+  struct:['称谓：“尊敬的各位领导、各位来宾”“亲爱的同学们”','开头：表示欢迎或欢送，交代场合缘由','主体：① 欢迎词：介绍本单位情况、说明活动安排、表达合作愿望 ② 欢送词：回顾相处过程、肯定成绩与贡献、表达惜别之情','结尾：祝愿或邀请再来，致谢'],
+  format:['口播稿，篇幅一般500—1000字，念3—5分钟','称呼要周全，按职务高低排列','欢迎词重在“介绍与期待”，欢送词重在“回顾与祝愿”','感情真挚但不煽情，避免套话连篇'],
+  style:'热情、得体、口语化，句子短',
+  avoid:['不要通篇客套没有具体内容','不要把欢迎词写成工作汇报','不要冷场式罗列行程'],
+  sample:'尊敬的各位来宾、各位老师：\n\n    大家好！今天，我们在这里欢迎××公司各位朋友来到我院……'
+},
+{
+  id:'kaimuci', name:'开幕词', group:'礼仪文书', proj:'模块四 礼仪文书写作 · 任务三 掌握开幕词、闭幕词的结构与写法', alt:'闭幕词',
+  scene:'会议、展览、比赛、艺术节等活动的开（闭）幕致辞',
+  struct:['标题：《××大会开幕词》','称谓：顶格','正文：① 宣布开幕（“××大会现在开幕”）② 会议背景、目的与意义 ③ 会议主要议题/议程安排 ④ 对与会者的希望与要求','结尾：预祝会议圆满成功','落款：致辞人身份（如“××学院院长××”）＋日期'],
+  format:['开幕词重在“宣布开始＋交代议题＋提出希望”，一般800—1500字','闭幕词重在“总结成果＋评价意义＋提出贯彻要求＋宣布闭幕”','致辞人身份要与会议规格相符','口播稿，语句要短，便于朗读'],
+  style:'庄重、简明、有仪式感，不拖沓',
+  avoid:['不要把开幕词写成工作报告','不要在开幕词里长篇论述业务内容','不要漏“宣布开幕”这一环节'],
+  sample:'××学院第十二次学生代表大会开幕词\n\n各位代表、各位来宾：\n    大家好！××学院第十二次学生代表大会现在开幕……\n    预祝大会圆满成功！'
+},
+{
+  id:'zhuchiren', name:'主持词', group:'礼仪文书', proj:'模块四 礼仪文书写作 · 任务四 掌握主持词的结构与写法',
+  scene:'会议、晚会、典礼、比赛等活动的主持串场',
+  struct:['开场：称呼（尊敬的各位领导、各位来宾）＋欢迎＋活动名称＋目的意义','环节串词：每个环节前交代“接下来是什么、谁来做、为什么值得看”','过渡语：承上启下，避免生硬转折','结尾：总结＋感谢＋祝愿＋宣布结束'],
+  format:['口播稿，句子要短（每句15字以内最佳），念出来不打结','与活动流程表一一对应，环节顺序不能乱','嘉宾姓名、职务、顺序必须准确无误','时间控制要留有余地，写明每个环节的预计时长'],
+  style:'口语化、有温度、节奏感强，可以有一点点幽默',
+  avoid:['不要写成书面报告','不要用“下面进行大会第一项议程”连念十遍','不要临场发挥式空话（“今天非常高兴”连说三次）'],
+  sample:'尊敬的各位老师、亲爱的同学们：\n\n    大家晚上好！欢迎来到××学院2025年迎新晚会现场。\n    【第一项：开场舞《××》】\n    首先请欣赏……'
+},
+{
+  id:'daxieci', name:'答谢词', group:'礼仪文书', proj:'模块四 礼仪文书写作 · 任务五 掌握答谢词的结构与写法',
+  scene:'作为受赠方、受访方、获奖方在仪式上致谢',
+  struct:['称谓：顶格，对主办方、赠送方、与会者的称呼','正文：① 交代事由（为何致谢）② 表达谢意（具体到对方的帮助/馈赠/接待）③ 说明意义或打算如何使用/如何回报 ④ 再次致谢并祝愿','结尾：“谢谢大家”“再次表示衷心感谢”','落款：致谢人/单位＋日期'],
+  format:['与感谢信的区别：答谢词是现场口播致辞，感谢信是书面文字','感谢的原因要具体，不空泛','篇幅一般500—800字，念3分钟以内','简要表态如何珍惜或回报，使答谢落地'],
+  style:'诚恳、有感情、口语化，句子短',
+  avoid:['不要通篇“感谢”两字重复十几次而无具体内容','不要把答谢词写成受赠感言加产品介绍'],
+  sample:'尊敬的××基金会各位领导、各位老师：\n\n    大家好！今天，我代表××学院受助学生在这里发言……'
+},
+{
+  id:'ganxiexin', name:'感谢信', group:'礼仪文书', proj:'模块四 礼仪文书写作 · 任务六 掌握感谢信的结构与写法',
+  scene:'受到帮助、支持、接待、捐赠后表达谢意',
+  struct:['标题：感谢信（可加事由，如《致××公司的感谢信》）','称谓：顶格，单位全称或个人姓名＋称呼','正文：① 何时何地受到何种帮助（写清事实）② 该帮助带来的具体作用或影响 ③ 表达诚挚谢意，表明态度或回报意愿','结尾敬语：“此致敬礼”“谨表谢意”','落款：署名＋日期'],
+  format:['事实要具体：时间、地点、人、事、物数量都要能对上，不空喊感谢','感情真挚但不夸张，避免“万分感谢”“感激涕零”','如需公开张贴，落款用单位全称并盖章'],
+  style:'真诚、朴实、有具体细节，句子里带一点温度',
+  avoid:['不要满篇形容词没有事实','不要把感谢信写成表扬信（表扬信侧重表彰，感谢信侧重致谢）'],
+  sample:'感 谢 信\n\n××公交集团第三分公司：\n\n    5月12日下午4时许，我母亲在××路公交车上突发不适……\n    在此，我代表全家向李明师傅及贵公司表示诚挚的谢意。\n\n                                        ×××\n                                    2025年5月15日'
+},
+{
+  id:'hexin', name:'贺信', group:'礼仪文书', proj:'模块四 礼仪文书写作 · 任务七 掌握贺信与贺电的结构与写法', alt:'贺电 / 贺词',
+  scene:'对会议召开、单位成立周年、个人取得成绩表示祝贺',
+  struct:['标题：贺信（或《致××的贺信》）','称谓：顶格，单位或个人','正文：① 交代祝贺缘由 ② 肯定成绩或意义（可简要回顾）③ 提出希望或祝愿','结尾：“祝××圆满成功”“祝××取得更大成绩”','落款：署名＋日期'],
+  format:['贺信、贺电、贺词的区别：贺信以书信形式发出，贺电用电文形式（更简练庄重），贺词是当场宣读的致辞','祝贺的话要落在具体事实上，不空说“可喜可贺”','评价要得体，不过度拔高','会议贺信一般600—1000字'],
+  style:'热情、庄重、有分寸',
+  avoid:['不要与贺电、贺词混用体例','不要写成工作总结，回顾不要超过1/3篇幅'],
+  sample:'贺  信\n\n××学院：\n\n    值此贵院建院四十周年之际，谨向全院师生员工致以热烈祝贺！\n    ……\n                                    ××大学\n                                    2025年9月20日'
+},
+{
+  id:'pinshu', name:'聘书', group:'礼仪文书', proj:'模块四 礼仪文书写作 · 任务八 掌握聘书的结构与写法',
+  scene:'聘请某人担任职务、评委、指导老师等时颁发',
+  struct:['标题：聘书（居中，字号大）','称谓：被聘人姓名＋称呼','正文：① 聘请缘由与依据 ② 聘任职务/岗位 ③ 聘期（起止年月）④ 职责或工作内容（必要时）','结语：“此聘”','落款：聘请单位名称＋盖章＋日期'],
+  format:['一般用印制好的固定格式，加盖公章方为有效','聘期必须写明起止时间','职务名称要规范，不用简称','编号、发证日期可置于下方'],
+  style:'庄重、简短，一般不超过200字',
+  avoid:['不要写成长篇协议','不要漏聘期和盖章','不要用“兹聘请××为××”却不说做什么'],
+  sample:'聘  书\n\n兹聘请王建国同志为我院客座教授，聘期三年（2025年9月至2028年8月）。\n    此聘\n\n                                    ××学院（盖章）\n                                    2025年9月1日'
+},
+
+/* ============ 模块五 新闻传播文书写作 ============ */
+{
+  id:'xiaoxi', name:'消息', group:'新闻传播文书', proj:'模块五 新闻传播文书写作 · 任务一 掌握消息的结构与写法', alt:'新闻消息 / 简讯',
+  scene:'报道新近发生的事实，供报刊、网站、公众号发布',
+  struct:['标题：可单行，也可多行（引题＋主题＋副题）','消息头（电头）：“本报讯（记者××）”','导语：第一段交代最重要的事实（何时、何地、何人、何事、为何、如何）','主体：按重要性递减（倒金字塔式）展开，补充细节、背景、引语','背景：解释来龙去脉（可穿插）','结语：补充事实或预示发展'],
+  format:['消息六要素齐全，缺一不可','倒金字塔结构：最重要的事实放最前，越往后越次要','导语一般不超过100字，一句话说清核心事实','用第三人称客观叙述，事实与观点分开','人名、职务、数字必须核实'],
+  style:'客观、简洁、短句，动词有力',
+  avoid:['不要用第一人称和抒情议论','不要把消息写成通讯（消息短、快、只报事实）','不要导语里堆满头衔和背景'],
+  sample:'我院举行2025届毕业典礼\n\n本报讯（记者　李明）6月18日上午，××学院2025届毕业典礼在图书馆报告厅举行，1200余名毕业生参加。\n    典礼上……'
+},
+{
+  id:'tongxun', name:'通讯', group:'新闻传播文书', proj:'模块五 新闻传播文书写作 · 任务二 掌握通讯的结构与写法',
+  scene:'对人物、事件、风貌作较详细、生动的报道',
+  struct:['标题：常带文学色彩或人物特征','开头：用一个场景、细节或悬念切入','主体：按时间顺序／逻辑顺序／空间顺序展开，写人写事写细节，穿插对话、动作、环境','结尾：升华主题或留下回味'],
+  format:['与消息的区别：通讯容量大、细节多、可描写抒情，时效要求略低','必须写人：有人物、有对话、有动作、有细节','主题集中，围绕一条主线组织材料','篇幅一般1000—3000字'],
+  style:'生动、有现场感，允许描写和细节渲染',
+  avoid:['不要通篇概述没有场景细节','不要把通讯写成工作总结','不要虚构对话和细节'],
+  sample:'一个人的毕业季\n\n    6月17日晚上十点，实验楼三层的灯还亮着。李明把最后一组数据导进电脑，屏幕上跳出一条曲线……'
+},
+{
+  id:'jieshuoci', name:'解说词', group:'新闻传播文书', proj:'模块五 新闻传播文书写作 · 任务三 掌握解说词的结构与写法',
+  scene:'展览、宣传片、纪录片、活动仪式上配合画面或实物的讲解词',
+  struct:['开头：交代对象、点明主题，吸引注意','主体：按画面/展品/时间顺序逐段解说，一段一物一事','结尾：总结意义、提出希望或号召'],
+  format:['与画面同步：文字要“跟着镜头走”，留出停顿','句子短、口语化，便于朗读（一般每句不超过15字）','用第二人称“您”引导观众视线','数字、年代、名称必须准确，一次讲清一个信息点'],
+  style:'口语、有画面感，节奏明快',
+  avoid:['不要堆砌形容词和空泛抒情','不要一段里塞太多信息','不要用书面长句让人念不下去'],
+  sample:'各位观众，您现在看到的是我院建校四十周年成果展区。\n    这面照片墙上有138张脸……'
+},
+{
+  id:'daoyouci', name:'导游词', group:'新闻传播文书', proj:'模块五 新闻传播文书写作 · 任务四 掌握导游词的结构与写法',
+  scene:'带团游览时对景点、线路的讲解',
+  struct:['欢迎词：问候、自我介绍、司机介绍、行程安排','沿途讲解：城市概况、风土人情、注意事项','景点讲解：地理位置、历史沿革、传说故事、建筑特色、观赏要点','结束语：总结、致谢、欢迎再来'],
+  format:['口语化，多用“请大家往这边看”“我们面前这座……”','内容要有知识性＋趣味性：数据、典故、传说各占一部分','线路顺序清晰，景点之间用过渡句衔接','提醒安全、时间、集合地点等实用信息'],
+  style:'亲切、生动、幽默适度，像聊天',
+  avoid:['不要背资料式的枯燥罗列','不要编造无依据的野史','不要面无表情地念稿（书面化长句）'],
+  sample:'各位朋友，大家好！欢迎来到××古城。我是本次行程的导游小李……\n    请跟我往这边走，我们眼前这座牌坊……'
+},
+{
+  id:'guanggao', name:'广告文案', group:'新闻传播文书', proj:'模块五 新闻传播文书写作 · 任务五 掌握广告文案的结构与写法',
+  scene:'商品、服务、活动的推广文案（平面、网络、短视频口播等）',
+  struct:['标题/主标：一句核心卖点（不超过15字，最好含具体利益）','副标：补充卖点依据或适用场景','正文：① 痛点或场景切入 ② 产品特点转化为用户利益（特点—所以—对你有用）③ 信任支撑（数据、资质、用户反馈）','广告口号（标语）：朗朗上口，可独立使用','行动号召：怎么买、怎么约、截止时间','落款：品牌名＋联系方式'],
+  format:['卖点唯一：一篇主打一个核心卖点','用具体数字和场景替代形容词（“3分钟充50%”优于“充电快”）','不同媒介版本不同：海报要短，软文可分小标题，口播要口语','不得使用“最”“第一”“国家级”等绝对化用语（广告法禁用）','可用比喻、双关、对偶、反复等修辞增强记忆'],
+  style:'具体、有画面感、能启动行动，允许跳出书面语的表达',
+  avoid:['不要用“匠心打造”“品质之选”这类空话','不要无依据的疗效、效果承诺','不要通篇形容词没有事实'],
+  sample:'主标：一层书桌，也能放下两台显示器\n副标：××升降桌 · 桌面70cm深\n正文：……\n行动：官网领券，6月30日前下单送安装'
+},
+
+/* ============ 模块六 常用事务文书写作 ============ */
+{
+  id:'jihua', name:'计划', group:'常用事务文书', proj:'模块六 常用事务文书写作 · 任务一 掌握计划的结构与写法', alt:'规划 / 方案 / 安排 / 要点',
+  scene:'对未来一段时期的工作、学习作出预先安排',
+  struct:['标题：××（单位）＋时限＋内容＋文种，如《××学院2025年学生工作计划》','正文前言：依据、目的、总目标（简短）','主体：① 指导思想/总体目标 ② 具体任务与措施（分条：任务＋责任人＋时限）③ 保障措施 ④ 时间步骤（分阶段）','落款：制定单位＋日期'],
+  format:['计划三要素：目标、措施、步骤，缺一不可','目标要可量化（“开展活动不少于6次”而不是“多开展活动”）','措施要落到人、财、物、时间','与总结是“预期—结果”的关系，写计划时为日后总结留出可考核的指标'],
+  style:'务实、可执行，多用短句和分条',
+  avoid:['不要出现“我们要努力”“力争更好”这类无法考核的话','不要把计划写成总结的时态','不要只有目标没有措施'],
+  sample:'××学院2025年春季学期学生工作计划\n\n一、总体目标……\n二、主要任务\n（一）学风建设……\n（二）就业服务……\n三、保障措施……'
+},
+{
+  id:'zongjie', name:'总结', group:'常用事务文书', proj:'模块六 常用事务文书写作 · 任务二 掌握总结的结构与写法',
+  scene:'对已完成的工作、学习进行回顾、分析和评价',
+  struct:['标题：《××（单位）××（时限）工作总结》','正文：① 基本情况概述（做了什么，总体成效）② 主要做法与成绩（分条，用数据、事例支撑）③ 存在的问题与不足（要真问题）④ 今后努力方向','落款：单位＋日期'],
+  format:['总结＝回顾＋分析＋规律，重点在“分析”，不能只罗列做过的事','成绩要有数据、有对比（与上学期比、与目标比）','问题不能只写“还有不足”四个字，要写具体表现和原因','三块篇幅大致平衡（成绩:问题:方向≈2:1:1）','总结与计划呼应：对照计划看哪些完成了、哪些没完成'],
+  style:'平实、有分析、有数据，句子不追求漂亮',
+  avoid:['不要写成流水账（“×月×日开了会，×月×日发了文”）','不要通篇表功没有反思','不要用“在领导的正确指导下”开六次头'],
+  sample:'2024—2025学年第二学期学习总结\n\n一、总体情况\n二、主要收获\n    1.专业学习方面……\n    2.实践能力方面……\n三、存在不足\n四、下学期打算'
+},
+{
+  id:'guizhangzhidu', name:'规章制度', group:'常用事务文书', proj:'模块六 常用事务文书写作 · 任务三 掌握规章制度的结构与写法', alt:'规定 / 办法 / 章程 / 守则 / 制度',
+  scene:'单位内部制定要求共同遵守的办事规程和行为准则',
+  struct:['标题：××（单位）××（事项）规定/办法/制度','题注：通过日期或发布机关、文号（置于标题下）','正文（分章式或条款式）：① 总则（目的、依据、适用范围）② 分则（具体条款，逐条写清应当做什么、禁止做什么、由谁负责、违反如何处理）③ 附则（解释权、施行日期）','落款：制定机关＋日期'],
+  format:['条款式结构：条下分款，用“第×条”“第×款”，前后条款不重复不矛盾','权限、时限、责任、罚则四要素要明确，避免“酌情处理”','必须交代施行日期，新旧制度冲突时说明废止条款','用“应当”“不得”“须”等规范用语，不用“希望”“最好”'],
+  style:'严谨、准确、无歧义，一律用陈述句',
+  avoid:['不要用宣传鼓动性语言','不要出现“原则上”“尽量”这类弹性表述','不要漏罚则和施行日期'],
+  sample:'××学院学生考勤管理规定\n\n第一章　总　则\n    第一条　为规范学生考勤管理，根据学校有关规定，制定本规定。\n第二章　考勤要求\n    第二条　学生应当按课表准时参加教学活动……'
+},
+{
+  id:'shuzhibg', name:'述职报告', group:'常用事务文书', proj:'模块六 常用事务文书写作 · 任务四 掌握述职报告的结构与写法',
+  scene:'担任某职务者向任命机关、选举人或群众报告履职情况',
+  struct:['标题：《××（职务）××年度述职报告》','称谓：顶格（如“各位领导、各位同志”）','正文：① 开篇交代任职时间、分管职责 ② 履职情况（对照职责逐项说，用数据、事例）③ 思想政治与廉洁自律（简明）④ 存在的不足 ⑤ 今后打算','结尾：“以上报告，请审议”“谢谢大家”','落款：述职人＋日期'],
+  format:['核心是“我”这个岗位做了什么事，不是单位整体工作总结','对照岗位职责写，职责之外的琐事不堆砌','成绩不夸大不推功，问题不回避','现场述职另有口头稿，书面稿分条清楚更受用'],
+  style:'诚恳、具体、有担当，少用形容词',
+  avoid:['不要写成单位总结（满篇“我们”没有“我”）','不要把述职写成竞聘演讲（述职是回顾，竞聘是争取）','不要只说成绩不说不足'],
+  sample:'2024年度学生会主席述职报告\n\n各位老师、各位同学：\n    我于2024年3月当选××学院学生会主席，现将一年来履职情况报告如下……\n    一、履职基本情况\n    二、主要工作成效\n    三、存在的不足\n    四、下一步打算\n    以上报告，请审议。'
+},
+{
+  id:'huiyijilu', name:'会议记录', group:'常用事务文书', proj:'模块六 常用事务文书写作 · 任务五 掌握会议记录的结构与写法',
+  scene:'会议过程中由记录人如实记录会议情况，作为原始凭证',
+  struct:['会议基本要素：会议名称、时间、地点、主持人、出席人、列席人、缺席人及原因、记录人','会议内容：① 议题 ② 发言记录（按发言顺序记，标明发言人）③ 讨论情况 ④ 决议事项 ⑤ 遗留问题','结尾：主持人审阅签字、记录人签字'],
+  format:['会议记录是原始记录，必须如实，不能加工提炼（区别于会议纪要）','发言记录要记原意，重要发言记原话并加引号','决议事项要记清“谁负责、何时完成、怎么落实”','当场记录，会后由主持人和记录人签字确认'],
+  style:'实录体，简要、客观，不用修饰',
+  avoid:['不要事后改写、增删发言内容','不要把会议记录写成会议纪要（纪要是整理加工后的正式文件）','不要漏出席人员和决议事项'],
+  sample:'××学院学生工作例会记录\n\n时间：2025年6月3日14:30—16:00\n地点：行政楼302会议室\n主持人：王建国\n出席人：李明、张伟、刘婷等8人\n记录人：陈晓东\n\n一、议题：……\n二、发言记录\n    王建国：……\n三、决议事项\n    1. 由李明负责……'
+},
+{
+  id:'jianbao', name:'简报', group:'常用事务文书', proj:'模块六 常用事务文书写作 · 任务六 掌握简报的结构与写法',
+  scene:'机关、单位内部反映情况、交流经验、通报动态的简短刊物',
+  struct:['报头：简报名称、期号、编发单位、印发日期（有固定格式，可用横线隔开）','正文：① 标题 ② 导语（何时何地何事）③ 主体（分条或分段展开）④ 结语（趋势、要求）','报尾：报送单位、印发份数、责任编辑'],
+  format:['简报＝简＋快＋新，一期可发一条或多条信息','标题要提炼事实（用主谓结构，不用公文式“关于……的通知”）','内容用事实和数据说话，一般不展开议论','内部刊物，注意保密范围和报送对象'],
+  style:'简明、客观、有信息量，句子短',
+  avoid:['不要把简报写成工作总结','不要一期塞进十条互不相关的流水消息','不要空话套话开头（“在公司领导的高度重视下”）'],
+  sample:'学 生 工 作 简 报\n第 12 期\n××学院学生工作办公室　　　　　　2025年6月5日\n\n我院举办2025年学风建设月启动仪式\n    6月3日下午，我院2025年学风建设月启动仪式在报告厅举行……'
+}
+];
+
+const GROUPS = ['日常应用文书','求职应聘文书','党政机关公文','礼仪文书','新闻传播文书','常用事务文书'];
+
+
+/* ------------------------- 二、去AI味规则 ------------------------- */
+const AI_WORDS = ['赋能','闭环','抓手','护城河','生态位','矩阵化','颗粒度','对齐','协同增效','深度融合','持续赋能',
+  '全方位','多维度','立体化','深层次','高质量发展','新质生产力','砥砺前行','扬帆起航','再谱新篇','崭新篇章',
+  '意义非凡','意义重大而深远','不可磨灭','浓墨重彩','璀璨','绽放光彩','双向奔赴','共鸣','底色','答卷','久久为功',
+  '首先','其次','最后','综上所述','总而言之','由此可见','值得注意的是','不难发现','让我们一起','总而言之',
+  '总而言之','在当今社会','随着社会的不断发展','众所周知','毋庸置疑','显而易见','一言以蔽之','诚然','与此同时',
+  '不仅……而且……','既……又……','一方面……另一方面……'];
+
+const STYLE_RULES = [
+  '不要用“首先、其次、再次、最后”“其一、其二”这种机械序号词串联段落；需要分条时就用“一、二、三”或自然过渡。',
+  '不要每段都写成“总—分—总”，不要每段结尾都来一句升华句。',
+  '句长要有长有短：允许出现五六个字的短句，也允许一个三十字的长句；不要每句都二十来字那么匀。',
+  '禁止排比轰炸：三个以上结构相同的短句连排最多出现一次。',
+  '禁止AI式空话大词（赋能、闭环、抓手、全方位、多维度、砥砺前行、再谱新篇等），一个都不要写。',
+  '不要用“不仅……而且……”“既……又……”“正如……所……”这类对仗套句。',
+  '中文正文用中文标点，引号用“”，不要用英文引号或半角括号。',
+  '禁止出现 emoji、颜文字、Markdown 的 ** 加粗和 # 标题符（除非用户要求）。',
+  '不要用破折号制造“高级感”；全篇破折号最多一处。',
+  '必须出现可核查的具体信息：具体日期、具体地点、具体人名、具体数量（如“3个班”“2次培训”“80余人”），不要用“若干”“一些”“许多”。',
+  '允许并鼓励一点点不完美：偶尔的口语插入（“说实话”“实际上”“当时”）、语序不那么整齐的句子、必要的重复强调。',
+  '不要总结式收尾“让我们一起……”“相信在大家的共同努力下……”。结尾就事论事，落到具体的人、时间或下一步动作。',
+  '专业称谓、公文格式用语、文种固定套语（如“特此报告”“妥否，请批示”）必须保留规范，不能为了口语化而写错体例。',
+  '不要出现“作为AI”“希望这份文稿对您有帮助”等任何暴露生成身份的话。'
+];
+
+/* ------------------------- 三、差异化种子 ------------------------- */
+const SEED_ORGS = ['××职业学院','××大学××学院','××科技有限公司','××街道办事处','××社区','××中学','××医院','××商贸有限公司','××文化传媒公司','××机械制造厂','××图书馆','××青年志愿者协会'];
+const SEED_PLACES = ['学院报告厅','图书馆一楼多功能厅','行政楼302会议室','大学生活动中心','市民广场','线上腾讯会议','教学楼B座201','校区体育馆','服务中心大厅'];
+const SEED_NAMES = ['张伟','李娜','王建国','陈晓东','刘婷','赵鹏','孙丽华','周明','吴雪','郑凯','冯静','韩磊'];
+const SEED_ANGLES = [
+  '从“事情本身的时间线”切入，按发生顺序推进，重点在关键节点。',
+  '从“对方最关心的问题”切入，开头就回答“这对我有什么用”。',
+  '从“一个具体的小场景/小事例”切入，用细节带出主题。',
+  '从“一组数据或对比”切入，先摆事实再讲道理。',
+  '从“一个常见误解或困难”切入，先破后立。',
+  '从“政策依据或上级要求”切入，再落到本单位实际做法。',
+  '从“当事人的第一人称感受”切入，偏口语、偏真实。',
+  '从“问题清单”切入，逐条给出对应做法。'
+];
+const SEED_STRUCT = [
+  '结构A：开门见山—分条展开—落到具体安排',
+  '结构B：背景一句带过—重点在中间三块并列内容—短结尾',
+  '结构C：先摆现状与困难—再讲做法—最后写下一步时间表',
+  '结构D：以时间顺序分阶段推进（前期、中期、后期）',
+  '结构E：以对象分类推进（对谁做什么，分两到三类）',
+  '结构F：先写一个具体事例，再归纳到面上情况'
+];
+
+/* ------------------------- 四、全局状态 ------------------------- */
+const STORE_KEY = 'yyw-writing-studio-v1';
+let ST = {
+  projects: [],
+  currentId: null,
+  settings: { baseUrl:'https://api.deepseek.com/v1', model:'deepseek-chat', apiKey:'', mode:'auto' },
+  ui: { tab:'setup', promptVersion:null, articleId:null }
+};
+
+function uid(){ return Math.random().toString(36).slice(2,9) + Date.now().toString(36).slice(-4); }
+function nowStr(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); }
+function todayCn(){ const d=new Date(); return d.getFullYear()+'年'+(d.getMonth()+1)+'月'+d.getDate()+'日'; }
+function esc(s){ return (s==null?'':String(s)).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function clone(o){ return JSON.parse(JSON.stringify(o)); }
+
+function countChars(t){
+  if(!t) return 0;
+  const noSpace = t.replace(/\s/g,'');
+  return noSpace.length;
+}
+function countCn(t){ if(!t) return 0; return (t.match(/[\u4e00-\u9fff]/g)||[]).length; }
+
+/* ------------------------- 存储层（三级降级） -------------------------
+   有些环境根本不给用 localStorage：微信内置浏览器、iOS 无痕模式、
+   某些安卓文件管理器自带的预览器、file:// 下被策略禁用的情形。
+   原来的写法一失败就弹提示，而且每敲一个字弹一次。
+   这里改成：localStorage → sessionStorage → 纯内存，只提示一次，
+   并且把当前状态暴露给界面，让用户知道数据到底存在哪。 */
+const MEM = { data:null };
+const STORE_MODE = { kind:'memory', label:'未检测', warnShown:false };
+
+function probeStorage(){
+  const testKey = '__yyw_test__';
+  const tryStore = (name, get) => {
+    try {
+      const s = get();
+      if(!s) return false;
+      s.setItem(testKey, '1');
+      const ok = s.getItem(testKey) === '1';
+      s.removeItem(testKey);
+      return ok;
+    } catch(e){ return false; }
+  };
+  if(tryStore('localStorage', ()=>window.localStorage)){
+    STORE_MODE.kind = 'local'; STORE_MODE.label = '浏览器本地存储（可长期保存）'; return;
+  }
+  if(tryStore('sessionStorage', ()=>window.sessionStorage)){
+    STORE_MODE.kind = 'session'; STORE_MODE.label = '临时存储（关掉浏览器会清空，建议随时导出备份）'; return;
+  }
+  STORE_MODE.kind = 'memory'; STORE_MODE.label = '仅内存（关掉页面就没了，请务必用“导出备份”保存到文件）';
+}
+probeStorage();
+
+function storageGet(){
+  try{
+    if(STORE_MODE.kind === 'local') return window.localStorage.getItem(STORE_KEY);
+    if(STORE_MODE.kind === 'session') return window.sessionStorage.getItem(STORE_KEY);
+  }catch(e){}
+  return MEM.data;
+}
+function storageSet(str){
+  try{
+    if(STORE_MODE.kind === 'local'){ window.localStorage.setItem(STORE_KEY, str); return true; }
+    if(STORE_MODE.kind === 'session'){ window.sessionStorage.setItem(STORE_KEY, str); return true; }
+  }catch(e){
+    // 写满了或被中途禁用：降级，避免继续报错
+    STORE_MODE.kind = 'memory';
+    STORE_MODE.label = '仅内存（存储空间不可用，请导出备份）';
+    MEM.data = str;
+    return false;
+  }
+  MEM.data = str;
+  return STORE_MODE.kind === 'memory' ? false : true;
+}
+
+/* 保存：绝不弹错、绝不每键一次提示 */
+let _saveWarned = false, _saveFailStreak = 0;
+function save(){
+  let str;
+  try{ str = JSON.stringify(ST); }
+  catch(e){ return; }              // 序列化失败（循环引用等）静默跳过
+  const ok = storageSet(str);
+  if(ok){ _saveFailStreak = 0; return; }
+  _saveFailStreak++;
+  // 只在第一次、且确实写不进去时提示一次；之后交给界面上的状态条常驻显示
+  if(!_saveWarned){
+    _saveWarned = true;
+    toast('这个浏览器不让自动保存，数据暂存在内存里。请用「备份」→「导出备份」存成文件。', 6000);
+  }
+  renderTop();
+}
+function storageBytes(){
+  const s = storageGet();
+  return s ? Math.round(s.length/1024) : 0;
+}
+
+function load(){
+  try{
+    const raw = storageGet();
+    if(raw){ const o=JSON.parse(raw); ST = Object.assign(ST,o); ST.ui=Object.assign({tab:'setup'},o.ui||{}); }
+  }catch(e){}
+  if(!ST.projects.length){
+    // 预置两个示例项目，开局就能看到完整流程（可直接改名或删除）
+    const a = newProjectObj('示例1：迎新晚会主持词');
+    a.req.genreId = 'zhuchiren';
+    a.req.title = '机电工程学院2025年迎新晚会主持词';
+    a.req.scene = '学院9月25日晚上7点在大学生活动中心办迎新晚会，共12个节目，中间安排两轮抽奖，需要一名主持人串场，预计两个小时';
+    a.req.role = '学院学生会文艺部干事，本次晚会主持人';
+    a.req.audience = '全院2025级新生、辅导员和任课老师';
+    a.req.deptName = '××职业学院机电工程学院';
+    a.req.mustHave = '必须有开场白、逐项节目串词、结束语；每个节目串词里要有一个具体细节（谁排的、排了多久、有什么小插曲）';
+    a.req.mustNot = '不要出现真实学校名称；不要用“首先其次最后”';
+    a.req.extra = '落款用“××职业学院机电工程学院团委”';
+    a.req.deadLine = '2025年9月20日';
+    const b = newProjectObj('示例2：学风建设月通知');
+    b.req.genreId = 'tongzhi';
+    b.req.title = '关于开展2025年学风建设月活动的通知';
+    b.req.scene = '学院要在5月开展学风建设月，需要开一次全体班长会布置工作，要求各班在5月20日前交一份班级学风自查表，活动期间迟到两次以上的同学要通报';
+    b.req.role = '学院学生工作办公室';
+    b.req.audience = '各系、各班级';
+    b.req.deptName = '××职业学院机电工程学院学生工作办公室';
+    b.req.wcMin = 700; b.req.wcMax = 1200; b.req.count = 3;
+    ST.projects.push(a, b);
+    ST.currentId = a.id;
+  }
+  if(!ST.currentId || !ST.projects.find(p=>p.id===ST.currentId)) ST.currentId = ST.projects[0].id;
+}
+
+function newProjectObj(name){
+  return {
+    id: uid(),
+    name: name || '未命名写作项目',
+    created: nowStr(),
+    req: {
+      genreId:'tongzhi', genreOther:'',
+      title:'', scene:'', role:'', audience:'', deptName:'',
+      wcMin:800, wcMax:1500, count:3,
+      styleLevel:'student', extra:'', mustHave:'', mustNot:'', deadLine:todayCn()
+    },
+    prompts: [],      // {v, text, note, time, mode:'rule'|'ai'}
+    curPrompt: 0,
+    articles: [],     // {id, title, body, wc, note, time, history:[], seed}
+    logs: []
+  };
+}
+function P(){ return ST.projects.find(p=>p.id===ST.currentId); }
+function G(id){ return GENRES.find(g=>g.id===id) || GENRES[0]; }
+function curGenre(){ const p=P(); return P().req.genreId==='other' ? null : G(p.req.genreId); }
+
+/* ------------------------- 五、提示词生成（规则引擎） ------------------------- */
+function styleProfile(level){
+  if(level==='loose') return '整体偏口语、随意，可以有“我觉得”“说实话”这类表达，允许句子不完整，像随手记下来的；但仍要守住文种体例。';
+  if(level==='formal') return '保持公文的规范与庄重（称谓、结语、落款不能错），只去掉翻译腔和模板腔，句子干净利落，不追求文采。';
+  if(level==='plain') return '平实朴素，不刻意口语也不刻意书面，像单位里写材料写得比较顺手的人写出来的。';
+  return '像一个真实的学生或员工自己写出来的：句子长短不一，有具体细节，偶尔有口语插入，不追求每句都漂亮，但读起来是“人写的”。';
+}
+
+function genreBrief(g){
+  if(!g) return '【文种待定：请按用户补充的文种名称，套用该文种通用体例（标题—称谓—正文—结语—落款）。】';
+  return [
+    '【文种】'+g.name+(g.alt?('（又称：'+g.alt+'）'):''),
+    '【教材出处】'+g.proj+'（《应用文写作（双色）（含微课）》，上海交通大学出版社，主审张玉霞，主编李永霞、陈志洁、王娟）',
+    '【适用场合】'+g.scene,
+    '【结构框架】',
+    g.struct.map((s,i)=>'  '+(i+1)+'. '+s).join('\n'),
+    '【格式与体例要点】',
+    g.format.map(s=>'  - '+s).join('\n'),
+    '【语言风格】'+g.style,
+    '【本类文种常见毛病（要避开）】',
+    g.avoid.map(s=>'  × '+s).join('\n'),
+    '【参考样式（只学格式和口吻，内容必须换成用户的，不要照抄）】',
+    g.sample.split('\n').map(l=>'  '+l).join('\n')
+  ].join('\n');
+}
+
+function buildPrompt(req, genre){
+  const wcRule = '全文正文（不含标题和落款署名行）字数必须控制在 ' + req.wcMin + '—' + req.wcMax + ' 字之间。中文按字符计（含标点），写完自己数一遍；不足就补充具体内容和细节，超出就删繁就简，宁可接近下限也不要超出上限。';
+  const L = [];
+  L.push('你是中文应用文写作的实操写手，不是文案机器。你的写作依据是《应用文写作（双色）（含微课）》（上海交通大学出版社·绿皮双色版，“十四五”职业教育国家规划教材，主审张玉霞，主编李永霞、陈志洁、王娟）六模块各任务的体例要求。动笔前先确认文种、行文关系和格式要素，再写内容。');
+  L.push('');
+  L.push('==================== 一、本次写作任务 ====================');
+  L.push('文种：'+(genre?genre.name:'（用户指定的文种，见下方补充说明）'));
+  L.push('题目/标题方向：'+(req.title||'（未指定，请依据场景自拟一个规范标题）'));
+  L.push('使用场景与事由：'+(req.scene||'（未填，请依据题目合理设定一个具体、可信的场景）'));
+  L.push('写作者身份：'+(req.role||'（未填，按文种惯例设定）'));
+  L.push('受文对象：'+(req.audience||'（未填，按文种惯例设定）'));
+  if(req.deptName) L.push('单位/部门名称：'+req.deptName);
+  L.push('成文日期：'+(req.deadLine||todayCn()));
+  if(req.mustHave) L.push('必须出现的内容：'+req.mustHave);
+  if(req.mustNot)  L.push('绝对不能出现的内容：'+req.mustNot);
+  if(req.extra)    L.push('其他要求：'+req.extra);
+  L.push('');
+  L.push('==================== 二、文种规范（必须遵守） ====================');
+  L.push(genreBrief(genre));
+  L.push('');
+  L.push('==================== 三、字数硬要求 ====================');
+  L.push(wcRule);
+  L.push('');
+  L.push('==================== 四、文风要求：不要有 AI 痕迹 ====================');
+  L.push(styleProfile(req.styleLevel));
+  L.push('逐条执行下面这些禁令：');
+  STYLE_RULES.forEach((r,i)=>L.push('  '+(i+1)+'. '+r));
+  L.push('');
+  L.push('==================== 五、不要跑题（重要） ====================');
+  L.push('1. 只写这个文种该写的内容，不要串文种（例如通知不要写成倡议书，总结不要写成计划，求职信不要写成简历）。');
+  L.push('2. 不写与主题无关的铺垫：不介绍应用文的意义，不谈时代背景，不写“在当今社会……”。');
+  L.push('3. 所有分条都必须围绕“题目/事由”展开，每一条都能在标题下找到归属。');
+  L.push('4. 不添加用户没有提到的政策、机构、数据；如需设定，要写成合理的虚构示例（单位用“××”，不要编造真实机构的具体数据）。');
+  L.push('5. 不要在正文里解释自己在写什么、不要写“以下是我的写作思路”“希望对您有帮助”这类话。');
+  L.push('');
+  L.push('==================== 六、输出格式（严格） ====================');
+  L.push('第一行：TITLE: 文章的规范标题（不含书名号）');
+  L.push('第二行起：BODY: 然后紧接正文（正文里的换行照原样保留）');
+  L.push('不要在正文里使用 Markdown 标记（不要 #、不要 **、不要 - 列表符号，分条用“一、”“（一）”“1.”）。');
+  L.push('不要输出任何解释、前言、结语或字数说明。');
+  return L.join('\n');
+}
+
+/* ------------------------- 六、API ------------------------- */
+async function callAPI(messages, opts){
+  opts = opts||{};
+  const s = ST.settings;
+  if(!s.apiKey) throw new Error('未填写 API Key（可在右上角“接口设置”里填写，或改用导出提示词模式）');
+  const url = s.baseUrl.replace(/\/+$/,'') + '/chat/completions';
+  const body = {
+    model: s.model || 'deepseek-chat',
+    messages: messages,
+    temperature: (opts.temperature==null?0.92:opts.temperature),
+    max_tokens: opts.maxTokens || 4000,
+    stream: false
+  };
+  if(opts.json) body.response_format = {type:'json_object'};
+  const res = await fetch(url, {
+    method:'POST',
+    headers:{'Content-Type':'application/json','Authorization':'Bearer '+s.apiKey},
+    body: JSON.stringify(body)
+  });
+  if(!res.ok){
+    let t=''; try{ t = await res.text(); }catch(e){}
+    throw new Error('接口返回 '+res.status+'：'+t.slice(0,300));
+  }
+  const data = await res.json();
+  const txt = data && data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
+  if(!txt) throw new Error('接口返回内容为空');
+  return txt;
+}
+
+function parseArticle(raw){
+  let t = (raw||'').trim();
+  t = t.replace(/^```[a-zA-Z]*\s*/,'').replace(/```\s*$/,'').trim();
+  let title='', body='';
+  let m = t.match(/TITLE\s*[:：]\s*(.+)/);
+  if(m) title = m[1].trim();
+  let bi = t.search(/BODY\s*[:：]/);
+  if(bi>=0){ body = t.slice(bi).replace(/^BODY\s*[:：]\s*/,'').trim(); }
+  else { body = t.replace(/^TITLE\s*[:：].*$/m,'').trim(); }
+  title = title.replace(/^[《“"]|[》”"]$/g,'').trim();
+  if(!title){
+    const first = body.split('\n').map(x=>x.trim()).filter(Boolean)[0]||'';
+    if(first.length<=40 && !/[。，；：]$/.test(first)) { title = first.replace(/^[《“"]|[》”"]$/g,''); }
+    else title = '（未命名）';
+  }
+  return {title:title, body:body};
+}
+
+/* ------------------------- 七、工具：去AI味扫描 & 提示词自检 ------------------------- */
+function scanAI(text){
+  const hits = [];
+  AI_WORDS.forEach(w=>{ if(w.indexOf('……')<0 && text.indexOf(w)>=0) hits.push(w); });
+  const stats = {
+    emoji: (text.match(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/gu)||[]).length,
+    mdBold: (text.match(/\*\*/g)||[]).length,
+    dash: (text.match(/——/g)||[]).length,
+    englishQuote: (text.match(/[""]/g)||[]).length,
+    exclaim: (text.match(/！/g)||[]).length
+  };
+  const paras = text.split(/\n+/).map(s=>s.trim()).filter(s=>s.length>10);
+  const lens = paras.map(p=>countChars(p));
+  stats.paras = paras.length;
+  if(lens.length>2){
+    const avg = lens.reduce((a,b)=>a+b,0)/lens.length;
+    const varc = Math.sqrt(lens.reduce((a,b)=>a+(b-avg)*(b-avg),0)/lens.length)/avg;
+    stats.avgPara = Math.round(avg);
+    stats.variation = Math.round(varc*100)/100;
+  } else { stats.avgPara=0; stats.variation=0; }
+  return {hits:hits, stats:stats};
+}
+
+function checkPrompt(text){
+  const items = [
+    ['文种与教材章节', /【文种】|【教材出处】/],
+    ['结构框架', /【结构框架】/],
+    ['格式体例要点', /【格式与体例要点】/],
+    ['字数硬要求', /字数必须控制在/],
+    ['去AI痕迹规则', /不要有 AI 痕迹|不要有AI痕迹/],
+    ['不要跑题约束', /不要跑题/],
+    ['输出格式约定', /TITLE\s*[:：]/],
+    ['写作者身份', /写作者身份：\s*\S/],
+    ['受文对象', /受文对象：\s*\S/],
+    ['具体事由/场景', /使用场景与事由：\s*\S/]
+  ];
+  return items.map(([n,re])=>({name:n, ok: re.test(text)}));
+}
+
+/* ------------------------- 八、界面 ------------------------- */
+const $ = id => document.getElementById(id);
+let busy = false;
+
+function toast(msg, ms){
+  const el = $('toast'); el.textContent = msg; el.classList.add('on');
+  clearTimeout(el._t); el._t = setTimeout(()=>el.classList.remove('on'), ms||2200);
+}
+function openModal(title, bodyHtml, footHtml, noClose){
+  $('modal').innerHTML =
+    '<div class="modal-h">'+esc(title)+'<span class="spacer"></span>'+
+    (noClose? '' : '<button class="btn sm ghost" onclick="UI.closeModal()">关闭</button>')+'</div>'+
+    '<div class="modal-b">'+bodyHtml+'</div>'+
+    (footHtml? '<div class="modal-f">'+footHtml+'</div>' : '')+
+    (noClose? '<div class="modal-f"><button class="btn pri" onclick="UI.closeModal()">关闭</button></div>' : '');
+  $('mask').classList.add('on');
+}
+const UI = {
+  isMobile(){ return window.matchMedia && window.matchMedia('(max-width:1080px)').matches; },
+  openDrawer(){
+    const s = $('side'), sc = $('scrim');
+    if(s) s.classList.add('open');
+    if(sc) sc.classList.add('on');
+  },
+  closeDrawer(){
+    const s = $('side'), sc = $('scrim');
+    if(s) s.classList.remove('open');
+    if(sc) sc.classList.remove('on');
+  },
+  toggleDrawer(){
+    const s = $('side');
+    if(s && s.classList.contains('open')) UI.closeDrawer(); else UI.openDrawer();
+  },
+  closeModal(){ $('mask').classList.remove('on'); },
+  openSettings(){
+    const s = ST.settings;
+    openModal('接口设置（DeepSeek / OpenAI 兼容）',
+      '<div class="note blue" style="margin-bottom:12px">填了 Key 就能在程序里一键生成和改稿；不填也能用——程序会把打磨好的提示词给你，复制到网页版对话框里生成，再把结果粘回来修改。<br>Key 只保存在你本机浏览器的 localStorage 里，不会上传到别处。</div>'+
+      '<div class="field"><label>接口地址 Base URL</label><input type="text" id="setUrl" value="'+esc(s.baseUrl)+'"></div>'+
+      '<div class="field"><label>模型名</label><input type="text" id="setModel" value="'+esc(s.model)+'">'+
+        '<div class="tip">DeepSeek 常用：deepseek-chat（快、便宜）／deepseek-reasoner（推理强、慢）。</div></div>'+
+      '<div class="field"><label>API Key</label><input type="password" id="setKey" value="'+esc(s.apiKey)+'" placeholder="sk-..."></div>'+
+      '<div class="field"><label>生成方式</label><select id="setMode">'+
+        '<option value="auto"'+(s.mode==='auto'?' selected':'')+'>自动：有 Key 就直接生成，无 Key 就导出提示词</option>'+
+        '<option value="api"'+(s.mode==='api'?' selected':'')+'>只用接口生成</option>'+
+        '<option value="manual"'+(s.mode==='manual'?' selected':'')+'>只导出提示词（不调用接口）</option>'+
+      '</select></div>'+
+      '<div id="apiTestOut"></div>',
+      '<button class="btn" onclick="UI.testAPI()">测试连通性</button>'+
+      '<button class="btn pri" onclick="UI.saveSettings()">保存</button>');
+  },
+  saveSettings(){
+    ST.settings.baseUrl = $('setUrl').value.trim() || 'https://api.deepseek.com/v1';
+    ST.settings.model = $('setModel').value.trim() || 'deepseek-chat';
+    ST.settings.apiKey = $('setKey').value.trim();
+    ST.settings.mode = $('setMode').value;
+    save(); renderTop(); UI.closeModal(); toast('已保存');
+  },
+  async testAPI(){
+    const out = $('apiTestOut');
+    out.innerHTML = '<div class="status"><span class="spin"></span>正在测试……</div>';
+    ST.settings.baseUrl = $('setUrl').value.trim();
+    ST.settings.model = $('setModel').value.trim();
+    ST.settings.apiKey = $('setKey').value.trim();
+    try{
+      const r = await callAPI([{role:'user',content:'只回复两个字：正常'}], {temperature:0, maxTokens:20});
+      out.innerHTML = '<div class="note green">连通成功，模型回复：'+esc(r.trim().slice(0,50))+'</div>';
+    }catch(e){
+      out.innerHTML = '<div class="note" style="background:#fbecec;border-color:#eccfcf;color:#8e2f2f">连接失败：'+esc(e.message)+
+      '<br><br>如果是 CORS/跨域或 Failed to fetch：说明浏览器直接调用被拦。可改用“只导出提示词”模式，把提示词贴到 DeepSeek 网页版使用。</div>';
+    }
+  },
+  openBook(){
+    let h = '<div class="note green" style="margin-bottom:12px">本程序的文种规范全部按下列教材章节编写。写文章时会把对应章节的体例要求原样塞进提示词，避免写成四不像。</div>';
+    GROUPS.forEach(g=>{
+      h += '<div class="secttl">'+esc(g)+'</div>';
+      GENRES.filter(x=>x.group===g).forEach(x=>{
+        h += '<details class="acc"><summary>'+esc(x.name)+(x.alt?'（'+esc(x.alt)+'）':'')+'　<span class="badge">'+esc(x.proj)+'</span></summary>'+
+             '<div class="acc-b">'+
+             '<div><b>适用场合：</b>'+esc(x.scene)+'</div>'+
+             '<div style="margin-top:6px"><b>结构框架：</b><ul>'+x.struct.map(s=>'<li>'+esc(s)+'</li>').join('')+'</ul></div>'+
+             '<div><b>体例要点：</b><ul>'+x.format.map(s=>'<li>'+esc(s)+'</li>').join('')+'</ul></div>'+
+             '<div><b>语言风格：</b>'+esc(x.style)+'</div>'+
+             '<div style="margin-top:6px"><b>常见毛病：</b><ul>'+x.avoid.map(s=>'<li>'+esc(s)+'</li>').join('')+'</ul></div>'+
+             '<div style="margin-top:8px"><b>参考样式：</b><div class="doc" style="max-height:220px;margin-top:5px">'+esc(x.sample)+'</div></div>'+
+             '</div></details>';
+      });
+    });
+    h += '<div class="secttl">教材信息（本程序唯一依据）</div>';
+    h += '<div class="kv">'+
+         '<dt>书名</dt><dd>'+esc(BOOK.name)+'</dd>'+
+         '<dt>出版社</dt><dd>'+esc(BOOK.press)+'</dd>'+
+         '<dt>主审</dt><dd>'+esc(BOOK.reviewer)+'</dd>'+
+         '<dt>主编</dt><dd>'+esc(BOOK.editors)+'</dd>'+
+         '<dt>ISBN</dt><dd>'+esc(BOOK.isbn)+'</dd>'+
+         '<dt>级别</dt><dd>'+esc(BOOK.level)+'</dd>'+
+         '<dt>编排结构</dt><dd>'+esc(BOOK.layout)+'</dd>'+
+         '<dt>收录文种</dt><dd>'+GENRES.length+' 个，分属 6 个模块</dd>'+
+         '</div>'+
+         '<div class="tip" style="margin-top:10px">说明：每个文种的“结构框架/写法要点”按该书“概念—特点—种类—结构与写法—注意事项”的任务体例整理；括注为“按同体例补全”的条目，是教材未单列、但你点名的文种，写法参照本教材体系中同类文书的规范。</div>';
+    openModal('教材文种手册', h);
+  },
+  openBackup(){
+    const modeColor = STORE_MODE.kind==='local' ? '#1f6f52' : (STORE_MODE.kind==='session' ? '#a8761f' : '#b23b3b');
+    const modeNote = STORE_MODE.kind==='local'
+      ? '<div class="note green" style="margin-bottom:12px"><b>保存正常。</b>这个浏览器允许长期保存，数据会留在本机，下次打开还在。</div>'
+      : '<div class="note" style="margin-bottom:12px;background:#fbecec;border-color:#eccfcf;color:#8e2f2f"><b>当前环境不能长期保存！</b>'+
+        '保存方式：'+esc(STORE_MODE.label)+'。<br>'+
+        '常见原因：微信/QQ 内置浏览器打开、iOS 无痕模式、文件管理器自带的预览器、浏览器禁用了网站存储。<br>'+
+        '<b>解决办法：</b>把文件下载到手机本地，用 Safari 或 Chrome 打开（不要用微信直接点开）；或者在电脑上运行一个本地服务，用手机浏览器访问网址。<br>'+
+        '无论如何，请随时点下面的「导出备份」，把数据存成文件。</div>';
+
+    openModal('项目备份 / 迁移与保存自检',
+      modeNote+
+      '<div class="kv" style="margin-bottom:12px">'+
+        '<dt>保存方式</dt><dd style="color:'+modeColor+';font-weight:600">'+esc(STORE_MODE.label)+'</dd>'+
+        '<dt>项目数</dt><dd>'+ST.projects.length+' 个</dd>'+
+        '<dt>占用空间</dt><dd>'+storageBytes()+' KB</dd>'+
+        '<dt>当前网址类型</dt><dd>'+esc(location.protocol==='file:' ? '本地文件（file://）——换个打开方式，数据就互相看不见' : '网页（'+location.protocol+'）')+'</dd>'+
+      '</div>'+
+      '<div class="btnbar" style="margin-bottom:12px">'+
+        '<button class="btn pri" onclick="UI.exportAll()">导出备份（JSON）</button>'+
+        '<button class="btn" onclick="$(\'impFile\').click()">导入备份覆盖</button>'+
+        '<button class="btn" onclick="UI.recover()">找回旧数据</button>'+
+        '<button class="btn danger" onclick="UI.wipe()">清空本机数据</button>'+
+      '</div>'+
+      '<input type="file" id="impFile" accept=".json" style="display:none" onchange="UI.importAll(this)">'+
+      '<div class="tip">换电脑、清缓存、换浏览器前，先导出一份 JSON 备份。导入会覆盖当前所有项目。<br>'+
+      '注意：用 file:// 直接打开和用网址打开，浏览器会当成两个不同的来源，各自存一份数据，互相看不到。想接着用原来的数据，就在原来那种方式下打开，或先用「导出备份」再导入。</div>');
+  },
+  recover(){
+    const found = [];
+    [STORE_KEY, 'yyw-writing-studio', 'yyw-writing-studio-v1', 'yyw-writing-studio-v0'].forEach(k=>{
+      try{
+        const v = window.localStorage.getItem(k);
+        if(v && v.length > 20) found.push({k:k, len:v.length, raw:v});
+      }catch(e){}
+    });
+    // 去重（本次已经在用的那个）
+    const cur = storageGet();
+    const list = found.filter(f=>f.raw !== cur);
+    if(!list.length){
+      openModal('找回旧数据','<div class="note">没有在这个浏览器里找到其他存档。<br><br>可能的原因：① 旧数据是用另一种方式打开时存的（比如之前是 file:// 双击打开，现在是网址访问）；② 浏览器清过缓存；③ 之前那次根本没保存成功。</div>');
+      return;
+    }
+    openModal('找回旧数据',
+      '<div class="note blue" style="margin-bottom:10px">在本浏览器里发现了 '+list.length+' 份历史存档，选一份恢复。</div>'+
+      list.map((f,i)=>{
+        let info = '';
+        try{
+          const o = JSON.parse(f.raw);
+          const n = (o.projects||[]).length;
+          const arts = (o.projects||[]).reduce((a,p)=>a+(p.articles||[]).length,0);
+          info = n+' 个项目、'+arts+' 篇文章';
+        }catch(e){ info = '（内容无法解析）'; }
+        return '<div class="btnbar" style="margin-bottom:8px"><span style="flex:1" class="tip">存档 '+esc(f.k)+'　'+esc(info)+'　'+Math.round(f.len/1024)+' KB</span>'+
+          '<button class="btn sm pri" onclick="UI.doRecover('+i+')">恢复这份</button></div>';
+      }).join(''),
+      '', true);
+    window.__recoverList = list;
+  },
+  doRecover(i){
+    const f = (window.__recoverList||[])[i];
+    if(!f){ toast('存档已失效'); return; }
+    try{
+      const o = JSON.parse(f.raw);
+      if(!o.projects) throw new Error('格式不对');
+      ST.projects = o.projects;
+      if(o.settings){ ST.settings.baseUrl=o.settings.baseUrl||ST.settings.baseUrl; ST.settings.model=o.settings.model||ST.settings.model; }
+      ST.currentId = ST.projects[0] ? ST.projects[0].id : null;
+      save(); UI.closeModal(); renderAll();
+      toast('已恢复 '+ST.projects.length+' 个项目', 3000);
+    }catch(e){ toast('恢复失败：'+e.message); }
+  },
+  exportAll(){
+    const blob = new Blob([JSON.stringify({projects:ST.projects,settings:{baseUrl:ST.settings.baseUrl,model:ST.settings.model,mode:ST.settings.mode}},null,2)],{type:'application/json'});
+    downloadBlob(blob, '应用文写作工坊-备份-'+Date.now()+'.json');
+    toast('已导出备份');
+  },
+  importAll(inp){
+    const f = inp.files[0]; if(!f) return;
+    const rd = new FileReader();
+    rd.onload = ()=>{
+      try{
+        const o = JSON.parse(rd.result);
+        if(!o.projects) throw new Error('文件格式不对');
+        ST.projects = o.projects;
+        if(o.settings){ ST.settings.baseUrl=o.settings.baseUrl||ST.settings.baseUrl; ST.settings.model=o.settings.model||ST.settings.model; ST.settings.mode=o.settings.mode||ST.settings.mode; }
+        ST.currentId = ST.projects[0] ? ST.projects[0].id : null;
+        save(); UI.closeModal(); renderAll(); toast('导入成功');
+      }catch(e){ toast('导入失败：'+e.message); }
+    };
+    rd.readAsText(f,'utf-8');
+  },
+  wipe(){
+    if(!confirm('确定清空本机所有项目数据？此操作不可撤销。\n建议先导出备份。')) return;
+    try{
+      window.localStorage.removeItem(STORE_KEY);
+      window.sessionStorage.removeItem(STORE_KEY);
+    }catch(e){}
+    MEM.data = null;
+    location.reload();
+  }
+};
+
+function downloadBlob(blob, filename){
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  document.body.appendChild(a); a.click();
+  setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 400);
+}
+function downloadText(text, filename){
+  const blob = new Blob(['\ufeff'+text], {type:'text/plain;charset=utf-8'});
+  downloadBlob(blob, filename);
+}
+
+/* ------------------------- 九、应用逻辑 ------------------------- */
+const App = {
+  newProject(){
+    const p = newProjectObj('写作项目 '+(ST.projects.length+1));
+    ST.projects.unshift(p); ST.currentId = p.id; ST.ui.tab='setup'; ST.ui.promptVersion=null;
+    save(); renderAll(); toast('已新建项目');
+  },
+  pick(id){ ST.currentId = id; ST.ui.promptVersion=null; ST.ui.articleId=null; save(); UI.closeDrawer(); renderAll(); },
+  rename(){
+    const p=P(); const n = prompt('项目名称：', p.name);
+    if(n && n.trim()){ p.name=n.trim(); save(); renderAll(); }
+  },
+  del(){
+    if(ST.projects.length<=1){ toast('至少保留一个项目'); return; }
+    if(!confirm('删除项目「'+P().name+'」？项目内的提示词和文章会一起删除。')) return;
+    ST.projects = ST.projects.filter(x=>x.id!==ST.currentId);
+    ST.currentId = ST.projects[0].id; save(); renderAll(); toast('已删除');
+  },
+  setReq(k,v){ P().req[k]=v; save(); },
+  setTab(t){ ST.ui.tab=t; save(); renderAll(); },
+  log(msg, cls){
+    const p=P(); p.logs.unshift({t:nowStr().slice(11), msg:msg, cls:cls||''});
+    if(p.logs.length>80) p.logs.length=80;
+  },
+
+  /* ---------- 阶段一/二：提示词 ---------- */
+  genPrompt(){
+    const p = P();
+    const g = p.req.genreId==='other' ? null : G(p.req.genreId);
+    if(p.req.genreId==='other' && !p.req.genreOther.trim()){ toast('请填写自定义文种名称'); return; }
+    const text = buildPrompt(p.req, g);
+    p.prompts.push({v:p.prompts.length+1, text:text, note:'根据需求生成初稿', time:nowStr(), mode:'rule'});
+    p.curPrompt = p.prompts.length-1;
+    ST.ui.promptVersion = p.prompts.length-1;
+    save(); renderAll();
+    toast('提示词 v'+p.prompts.length+' 已生成，请在右侧提出修改意见');
+  },
+  async refinePrompt(){
+    const p = P();
+    if(!p.prompts.length){ toast('请先生成提示词'); return; }
+    const fb = ($('fbInput')?$('fbInput').value:'').trim();
+    if(!fb){ toast('请先写下你的修改意见'); return; }
+    const cur = p.prompts[p.curPrompt];
+    if(busy) return;
+    busy = true; renderPromptPanel();
+
+    // 无 Key：给出“修改指令包”，交给人工投喂
+    if(ST.settings.mode==='manual' || !ST.settings.apiKey){
+      const pkg = [
+        '【提示词修改意见】'+fb,
+        '',
+        '===== 请把下面的修改意见合并进原提示词，输出一版新的完整提示词（保留原有全部硬性要求，只做增删改，不要解释）=====',
+        '',
+        '----- 原提示词开始 -----',
+        cur.text,
+        '----- 原提示词结束 -----'
+      ].join('\n');
+      p.prompts.push({v:p.prompts.length+1, text:cur.text, note:'待人工优化的修改指令包（无Key模式）\n\n'+pkg, time:nowStr(), mode:'manual'});
+      p.curPrompt = p.prompts.length-1; ST.ui.promptVersion=p.prompts.length-1;
+      save(); busy=false; renderAll();
+      toast('已生成修改指令包，可复制到对话框里优化，再把新提示词粘回');
+      return;
+    }
+
+    const sys = '你是提示词工程师。你的任务是根据用户的修改意见，改进一份“中文应用文写作提示词”。要求：'+
+      '① 完整保留原提示词里所有仍然有效的硬性要求（文种体例、字数区间、不要跑题、去AI痕迹、输出格式）；'+
+      '② 严格落实用户这次提出的修改意见，该删的删、该加的加；'+
+      '③ 新增规则要写得可执行、可检查，不要写“要更生动”这种空话；'+
+      '④ 如果用户意见与原要求冲突，以用户意见为准，并同步调整冲突处，避免自相矛盾；'+
+      '⑤ 只输出修改后的完整提示词正文，不要任何解释、不要用代码块包裹。';
+
+    try{
+      App.log('正在按意见优化提示词……');
+      const newText = await callAPI([
+        {role:'system', content:sys},
+        {role:'user', content:'【当前提示词】\n'+cur.text+'\n\n【我的修改意见】\n'+fb+'\n\n请输出修改后的完整提示词。'}
+      ], {temperature:0.5, maxTokens:5000});
+      const clean = newText.replace(/^```[a-zA-Z]*\s*/,'').replace(/```\s*$/,'').trim();
+      p.prompts.push({v:p.prompts.length+1, text:clean, note:fb, time:nowStr(), mode:'ai'});
+      p.curPrompt = p.prompts.length-1; ST.ui.promptVersion=p.prompts.length-1;
+      p.logs.unshift({t:nowStr().slice(11), msg:'提示词升级到 v'+(p.prompts.length)+'：'+fb.slice(0,40), cls:'g'});
+      save(); busy=false; renderAll(); toast('已生成 v'+p.prompts.length);
+    }catch(e){
+      busy=false; App.log('优化失败：'+e.message,'r'); renderPromptPanel(); toast('优化失败：'+e.message, 4000);
+    }
+  },
+  editPromptManual(){
+    const p=P(); const cur = p.prompts[p.curPrompt];
+    if(!cur){ toast('还没有提示词'); return; }
+    const v = prompt('直接编辑当前提示词（v'+cur.v+'）：', cur.text);
+    if(v==null) return;
+    p.prompts.push({v:p.prompts.length+1, text:v, note:'手动编辑', time:nowStr(), mode:'manual'});
+    p.curPrompt=p.prompts.length-1; ST.ui.promptVersion=p.prompts.length-1;
+    save(); renderAll(); toast('已保存为 v'+p.prompts.length);
+  },
+  useVersion(i){ const p=P(); p.curPrompt=i; ST.ui.promptVersion=i; save(); renderPromptPanel(); },
+  copyPrompt(){
+    const p=P(); const cur=p.prompts[p.curPrompt]; if(!cur){toast('没有提示词');return;}
+    copyText(cur.text); toast('提示词已复制');
+  },
+  exportPrompt(){
+    const p=P(); const cur=p.prompts[p.curPrompt]; if(!cur){toast('没有提示词');return;}
+    downloadText(cur.text, p.name+'-提示词v'+cur.v+'.txt'); toast('已导出提示词');
+  },
+  diffPrompt(){
+    const p=P(); const cur=p.prompts[p.curPrompt];
+    if(!cur || p.curPrompt===0){ toast('第一版没有上一版可比'); return; }
+    const prev = p.prompts[p.curPrompt-1];
+    openModal('版本对比　v'+prev.v+' → v'+cur.v,
+      '<div class="split">'+
+      '<div><div class="secttl">上一版 v'+prev.v+'（'+esc(prev.time)+'）</div><div class="doc">'+esc(prev.text)+'</div></div>'+
+      '<div><div class="secttl">当前版 v'+cur.v+'（'+esc(cur.time)+'）</div><div class="doc">'+esc(cur.text)+'</div></div>'+
+      '</div><div class="tip" style="margin-top:10px">修改意见：'+esc(cur.note||'（无）')+'</div>');
+  },
+  pastePrompt(){
+    const v = prompt('把外部优化好的提示词粘贴进来，会存为新版本：','');
+    if(v==null || !v.trim()) return;
+    const p=P();
+    p.prompts.push({v:p.prompts.length+1, text:v.trim(), note:'外部粘贴', time:nowStr(), mode:'manual'});
+    p.curPrompt=p.prompts.length-1; ST.ui.promptVersion=p.prompts.length-1;
+    save(); renderAll(); toast('已存为 v'+p.prompts.length);
+  },
+
+  /* ---------- 阶段三：出稿 ---------- */
+  async generate(){
+    const p = P();
+    if(!p.prompts.length){ toast('请先在“提示词打磨”里生成提示词'); ST.ui.tab='prompt'; renderAll(); return; }
+    if(busy){ toast('正在生成中，请稍候'); return; }
+    const cur = p.prompts[p.curPrompt];
+    const n = Math.max(1, Math.min(20, parseInt(p.req.count)||1));
+
+    if(ST.settings.mode==='manual' || !ST.settings.apiKey){
+      const lines = [];
+      for(let i=0;i<n;i++){ lines.push('=========== 第 '+(i+1)+' 篇（变化要求：'+seedLine(i)+'） ===========\n'+cur.text); }
+      openModal('无 Key 模式：请把下面 '+n+' 份提示词分别投喂给对话模型',
+        '<div class="note" style="margin-bottom:10px">每份提示词的“变化要求”都不同，这样生成出来的文章才不是同一篇的复制品。生成后把结果粘回“成品修改”里即可继续改。</div>'+
+        '<div class="doc">'+esc(lines.join('\n\n\n'))+'</div>',
+        '<button class="btn" onclick="copyText(document.querySelector(\'#modal .doc\').textContent);toast(\'已复制全部\')">复制全部</button>'+
+        '<button class="btn pri" onclick="UI.closeModal()">知道了</button>');
+      return;
+    }
+
+    busy=true; renderGenPanel();
+    App.log('开始生成 '+n+' 篇文章（文种：'+(curGenre()?curGenre().name:'自定义')+'，字数 '+p.req.wcMin+'—'+p.req.wcMax+'）');
+    let done=0, fail=0;
+    for(let i=0;i<n;i++){
+      try{
+        p.logs.unshift({t:nowStr().slice(11), msg:'正在生成第 '+(i+1)+'/'+n+' 篇……', cls:'y'});
+        renderGenPanel();
+        const variation = seedLine(i);
+        const userMsg = cur.text + '\n\n==================== 七、本篇差异化要求（覆盖上一篇的写法） ====================\n'+
+          '这是同一批任务的第 '+(i+1)+' 篇，必须与同批其他篇目明显不同：\n'+variation+
+          '\n- 不要与同批其他篇目使用相同的单位名称、人名、标题句式；\n'+
+          '- 具体时间、地点、活动名称、数据都要另设一套，不要套用你上一次写的；\n'+
+          '- 标题不要只是换个数字，句式和落点要换。\n'+
+          '\n再强调一遍字数：正文控制在 '+p.req.wcMin+'—'+p.req.wcMax+' 字之间。';
+        let raw = await callAPI([
+          {role:'system', content:'你是中文应用文写作实操写手，严格按用户给出的规范与字数写作。'},
+          {role:'user', content:userMsg}
+        ], {temperature:0.95, maxTokens:4000});
+        let art = parseArticle(raw);
+        let wc = countChars(art.body);
+
+        // 字数校正，最多两轮
+        for(let round=0; round<2; round++){
+          if(wc>=p.req.wcMin && wc<=p.req.wcMax) break;
+          const dir = wc < p.req.wcMin ? '不足' : '超出';
+          const delta = wc < p.req.wcMin ? (p.req.wcMin - wc) : (wc - p.req.wcMax);
+          p.logs.unshift({t:nowStr().slice(11), msg:'第 '+(i+1)+' 篇字数'+dir+' '+delta+' 字，自动修正（第 '+(round+1)+' 轮）', cls:'y'});
+          renderGenPanel();
+          const fixMsg = wc < p.req.wcMin
+            ? '下面这篇应用文只有 '+wc+' 字，比要求的 '+p.req.wcMin+' 字少了 '+delta+' 字。请在不改变文种体例、不注水的前提下，补充具体的过程、分工、时间节点、数据和必要的分条内容，把它扩写到 '+p.req.wcMin+'—'+p.req.wcMax+' 字。仍然禁止 AI 腔，不要写空话。\n\n【现文】\n'+art.body+'\n\n只输出扩写后的完整正文，第一行仍用 TITLE: 开头。'
+            : '下面这篇应用文有 '+wc+' 字，超出要求的 '+p.req.wcMax+' 字 '+delta+' 字。请删掉重复表述、空泛评论和可有可无的修饰，保留全部必要信息和格式要素，压到 '+p.req.wcMin+'—'+p.req.wcMax+' 字。\n\n【现文】\n'+art.body+'\n\n只输出精简后的完整正文，第一行仍用 TITLE: 开头。';
+          const fixed = await callAPI([
+            {role:'system', content:'你是中文应用文写作实操写手，严格按字数要求修改文稿，禁止注水、禁止AI腔。'},
+            {role:'user', content:fixMsg}
+          ], {temperature:0.5, maxTokens:4000});
+          const a2 = parseArticle(fixed);
+          if(countChars(a2.body) === wc) break;
+          art = a2; wc = countChars(art.body);
+        }
+
+        const scan = scanAI(art.body);
+        p.articles.push({
+          id: uid(), title: art.title, body: art.body, wc: wc, time: nowStr(),
+          seed: variation, note:'第 '+(i+1)+' 篇　'+varianceNote(variation),
+          history:[], aiHits: scan.hits, stats: scan.stats
+        });
+        p.logs.unshift({t:nowStr().slice(11), msg:'第 '+(i+1)+' 篇完成：《'+art.title+'》'+wc+' 字'+(scan.hits.length?('　⚠ 疑似AI味词：'+scan.hits.slice(0,5).join('、')):'　干净'), cls: scan.hits.length?'y':'g'});
+        done++;
+        save(); renderAll();
+      }catch(e){
+        fail++;
+        p.logs.unshift({t:nowStr().slice(11), msg:'第 '+(i+1)+' 篇失败：'+e.message, cls:'r'});
+        renderGenPanel();
+      }
+    }
+    busy=false; save(); renderAll();
+    toast('完成 '+done+' 篇'+(fail?('，失败 '+fail+' 篇'):''), 3000);
+  },
+
+  async regenOne(id){
+    const p=P(); const idx = p.articles.findIndex(a=>a.id===id);
+    if(idx<0) return;
+    const cur = p.prompts[p.curPrompt];
+    if(ST.settings.mode==='manual' || !ST.settings.apiKey){ toast('无 Key 模式：请复制提示词到对话框生成后，用“粘贴外部成稿”导入'); return; }
+    if(busy){ toast('正在忙，请稍候'); return; }
+    busy=true; renderGenPanel();
+    try{
+      const variation = seedLine(idx+3);
+      const raw = await callAPI([
+        {role:'system', content:'你是中文应用文写作实操写手，严格按规范与字数写作。'},
+        {role:'user', content: cur.text+'\n\n==================== 本篇要求 ====================\n重写一篇，与下面这篇旧稿在场景、结构、措辞上都要有明显区别：\n'+variation+'\n【旧稿，仅供参考不要照抄】\n'+p.articles[idx].body}
+      ], {temperature:1.0, maxTokens:4000});
+      const art = parseArticle(raw);
+      const scan = scanAI(art.body);
+      const a = p.articles[idx];
+      a.history.push({time:a.time, title:a.title, body:a.body, wc:a.wc, note:'重写前版本'});
+      a.title=art.title; a.body=art.body; a.wc=countChars(art.body); a.time=nowStr();
+      a.seed=variation; a.aiHits=scan.hits; a.stats=scan.stats;
+      p.logs.unshift({t:nowStr().slice(11), msg:'已重写第 '+(idx+1)+' 篇：'+a.wc+' 字', cls:'g'});
+      save();
+    }catch(e){ App.log('重写失败：'+e.message,'r'); toast('重写失败：'+e.message,3500); }
+    busy=false; renderAll();
+  },
+  delArticle(id){
+    const p=P();
+    if(!confirm('删除这篇文章？')) return;
+    p.articles = p.articles.filter(a=>a.id!==id);
+    if(ST.ui.articleId===id) ST.ui.articleId=null;
+    save(); renderAll(); toast('已删除');
+  },
+  copyArticle(id){
+    const a = P().articles.find(x=>x.id===id); if(!a) return;
+    copyText(a.title+'\n\n'+a.body); toast('已复制全文');
+  },
+  exportArticle(id){
+    const a = P().articles.find(x=>x.id===id); if(!a) return;
+    downloadText(a.title+'\n\n'+a.body, a.title.replace(/[\\/:*?"<>|]/g,'_')+'.txt'); toast('已导出 TXT');
+  },
+  exportArticleDoc(id){
+    const a = P().articles.find(x=>x.id===id); if(!a) return;
+    exportWord([a], P().name+'-'+a.title);
+  },
+  exportAllArticles(){
+    const p=P(); if(!p.articles.length){ toast('还没有文章'); return; }
+    const txt = p.articles.map((a,i)=>'【第 '+(i+1)+' 篇】\n'+a.title+'\n\n'+a.body+'\n\n'+'─'.repeat(30)+'\n').join('\n');
+    downloadText(txt, p.name+'-全部'+p.articles.length+'篇.txt'); toast('已导出全部');
+  },
+  exportAllDoc(){
+    const p=P(); if(!p.articles.length){ toast('还没有文章'); return; }
+    exportWord(p.articles, p.name);
+  },
+  pasteArticle(){
+    const p=P();
+    openModal('粘贴外部成稿', 
+      '<div class="note blue" style="margin-bottom:10px">把网页版对话框生成的文章整段粘进来。第一行是标题，空一行后是正文；程序会自动拆出标题。</div>'+
+      '<textarea id="pasteBox" class="edit-area" style="min-height:280px" placeholder="标题\n\n正文……"></textarea>',
+      '<button class="btn pri" onclick="App.doPasteArticle()">导入为新文章</button>');
+  },
+  doPasteArticle(){
+    const t = ($('pasteBox').value||'').trim();
+    if(!t){ toast('内容为空'); return; }
+    const p = P();
+    const lines = t.split('\n');
+    let title = lines[0].trim().replace(/^[《“"]|[》”"]$/g,'');
+    let body = lines.slice(1).join('\n').trim();
+    if(!body){ body = title; title='（未命名）'; }
+    const scan = scanAI(body);
+    p.articles.push({id:uid(), title:title, body:body, wc:countChars(body), time:nowStr(), seed:'', note:'外部粘贴', history:[], aiHits:scan.hits, stats:scan.stats});
+    save(); UI.closeModal(); ST.ui.tab='edit'; renderAll(); toast('已导入');
+  },
+
+  /* ---------- 阶段四：修改 ---------- */
+  openEdit(id){ ST.ui.articleId=id; ST.ui.tab='edit'; save(); renderAll(); },
+  editField(id, field, val){
+    const a = P().articles.find(x=>x.id===id); if(!a) return;
+    a[field] = val;
+    if(field==='body'||field==='title'){ a.wc = countChars(a.body); const s=scanAI(a.body); a.aiHits=s.hits; a.stats=s.stats; }
+    save(); renderEditPanel(true);
+  },
+  snapshot(id, label){
+    const a = P().articles.find(x=>x.id===id); if(!a) return;
+    a.history.push({time:a.time, title:a.title, body:a.body, wc:a.wc, note:label||'手动修改前版本'});
+    a.time = nowStr();
+  },
+  restore(id, hi){
+    const a = P().articles.find(x=>x.id===id); if(!a) return;
+    const h = a.history[hi]; if(!h) return;
+    App.snapshot(id,'恢复历史版本前的版本');
+    a.title=h.title; a.body=h.body; a.wc=h.wc;
+    save(); renderAll(); toast('已恢复到 '+h.time+' 的版本');
+  },
+  async revise(id){
+    const p=P(); const a=p.articles.find(x=>x.id===id); if(!a) return;
+    const box = $('reviseBox'); const instr = box? box.value.trim() : '';
+    if(!instr){ toast('请先写下修改要求'); return; }
+    if(busy){ toast('正在忙'); return; }
+    // 局部文本替换语法
+    const rep = parseReplace(instr);
+    if(rep){
+      if(a.body.indexOf(rep.from)<0){ toast('没找到要替换的文字：'+rep.from.slice(0,20)); return; }
+      App.snapshot(id,'替换前');
+      a.body = a.body.split(rep.from).join(rep.to);
+      a.wc = countChars(a.body); const s=scanAI(a.body); a.aiHits=s.hits; a.stats=s.stats;
+      save(); renderEditPanel(); toast('已替换 '+(a.body.split(rep.to).length-1)+' 处');
+      return;
+    }
+    if(ST.settings.mode==='manual' || !ST.settings.apiKey){
+      const pkg = '【修改要求】'+instr+'\n\n【现文】\n'+a.body+'\n\n请按修改要求改这篇应用文，保持文种体例和 '+p.req.wcMin+'—'+p.req.wcMax+' 字，禁止 AI 腔，只输出修改后的完整正文（第一行 TITLE: 标题）。';
+      openModal('无 Key 模式：把下面这段投喂给对话模型',
+        '<div class="doc">'+esc(pkg)+'</div>',
+        '<button class="btn" onclick="copyText(document.querySelector(\'#modal .doc\').textContent);toast(\'已复制\')">复制</button>'+
+        '<button class="btn pri" onclick="UI.closeModal()">知道了</button>');
+      return;
+    }
+    busy=true; renderEditPanel();
+    try{
+      const g = p.req.genreId==='other'? null : G(p.req.genreId);
+      const raw = await callAPI([
+        {role:'system', content:'你是中文应用文写作实操写手。按要求修改文稿，保持文种体例，严格控制在指定字数，禁止AI腔。'},
+        {role:'user', content:
+          '【文种规范】\n'+genreBrief(g)+'\n\n【字数】正文 '+p.req.wcMin+'—'+p.req.wcMax+' 字。\n\n'+
+          '【去AI痕迹规则】\n'+STYLE_RULES.map((r,i)=>(i+1)+'. '+r).join('\n')+'\n\n'+
+          '【现文】\n'+a.body+'\n\n【修改要求】\n'+instr+'\n\n'+
+          '只输出修改后的完整正文，第一行 TITLE: 标题，不要解释。'}
+      ], {temperature:0.7, maxTokens:4000});
+      const art = parseArticle(raw);
+      App.snapshot(id, '按意见修改前：'+instr.slice(0,30));
+      a.title=art.title; a.body=art.body; a.wc=countChars(a.body);
+      const s=scanAI(a.body); a.aiHits=s.hits; a.stats=s.stats;
+      p.logs.unshift({t:nowStr().slice(11), msg:'第 '+(p.articles.indexOf(a)+1)+' 篇按意见修改完成（'+a.wc+' 字）', cls:'g'});
+      save(); busy=false; renderAll(); toast('已修改');
+    }catch(e){ busy=false; renderEditPanel(); toast('修改失败：'+e.message,3500); }
+  },
+  async deAI(id){
+    const p=P(); const a=p.articles.find(x=>x.id===id); if(!a) return;
+    if(busy){ toast('正在忙'); return; }
+    if(ST.settings.mode==='manual' || !ST.settings.apiKey){
+      const pkg = '下面这篇应用文有机器写作的痕迹（套话、排比、均匀句式、空泛大词）。请在完全保留文种体例、格式要素、事实信息和字数（'+p.req.wcMin+'—'+p.req.wcMax+' 字）的前提下改写，让它读起来像真人写的：\n'+STYLE_RULES.map((r,i)=>(i+1)+'. '+r).join('\n')+'\n\n【现文】\n'+a.body+'\n\n只输出改写后的完整正文（第一行 TITLE: 标题）。';
+      openModal('无 Key 模式：去AI味改写指令',
+        '<div class="doc">'+esc(pkg)+'</div>',
+        '<button class="btn" onclick="copyText(document.querySelector(\'#modal .doc\').textContent);toast(\'已复制\')">复制</button>'+
+        '<button class="btn pri" onclick="UI.closeModal()">知道了</button>');
+      return;
+    }
+    busy=true; renderEditPanel();
+    try{
+      const scan = scanAI(a.body);
+      const raw = await callAPI([
+        {role:'system', content:'你是中文编辑，专门给机械的文稿“去AI味”。你不改变事实、不改变文种体例、不改变字数区间，只改写法。'},
+        {role:'user', content:
+          '【现文】\n'+a.body+'\n\n'+
+          '【诊断】\n平均段长 '+scan.stats.avgPara+' 字，段长变异系数 '+scan.stats.variation+'（低于0.35说明句式太均匀）；'+
+          '检测到的套话/大词：'+(scan.hits.join('、')||'（无，但可能仍有句式均匀问题）')+'；'+
+          'emoji '+scan.stats.emoji+' 个，Markdown加粗 '+scan.stats.mdBold+' 处，破折号 '+scan.stats.dash+' 处。\n\n'+
+          '【改写规则】\n'+STYLE_RULES.map((r,i)=>(i+1)+'. '+r).join('\n')+'\n'+
+          '另外：字数保持 '+p.req.wcMin+'—'+p.req.wcMax+' 字，格式要素一个不能少。\n\n'+
+          '只输出改写后的完整正文，第一行 TITLE: 标题，不要说明改了什么。'}
+      ], {temperature:0.9, maxTokens:4000});
+      const art = parseArticle(raw);
+      App.snapshot(id,'去AI味改写前');
+      a.title=art.title; a.body=art.body; a.wc=countChars(a.body);
+      const s=scanAI(a.body); a.aiHits=s.hits; a.stats=s.stats;
+      save(); busy=false; renderAll();
+      toast('改写完成，套话 '+(scan.hits.length?s.hits.length+' 处残留':'已清零'), 3000);
+    }catch(e){ busy=false; renderEditPanel(); toast('改写失败：'+e.message,3500); }
+  },
+  async expand(id, dir){
+    const p=P(); const a=p.articles.find(x=>x.id===id); if(!a) return;
+    const instr = dir>0 ? ('这篇只有 '+a.wc+' 字，不足 '+p.req.wcMin+' 字。请补充具体内容扩写到 '+p.req.wcMin+'—'+p.req.wcMax+' 字，不要注水。')
+                        : ('这篇有 '+a.wc+' 字，超出 '+p.req.wcMax+' 字。请精简到 '+p.req.wcMin+'—'+p.req.wcMax+' 字，保留全部格式要素。');
+    if(busy){ toast('正在忙'); return; }
+    if(ST.settings.mode==='manual' || !ST.settings.apiKey){ toast('无 Key 模式请用“修改要求”框里的自然语言指令'); return; }
+    busy=true; renderEditPanel();
+    try{
+      const raw = await callAPI([{role:'user', content: instr+'\n\n【现文】\n'+a.body+'\n\n只输出修改后的完整正文，第一行 TITLE: 标题。'}],{temperature:0.5,maxTokens:4000});
+      const art = parseArticle(raw);
+      App.snapshot(id, dir>0?'扩写前':'精简前');
+      a.title=art.title; a.body=art.body; a.wc=countChars(a.body);
+      const s=scanAI(a.body); a.aiHits=s.hits; a.stats=s.stats;
+      save(); busy=false; renderAll(); toast('字数已调整：'+a.wc+' 字');
+    }catch(e){ busy=false; renderEditPanel(); toast('失败：'+e.message,3500); }
+  }
+};
+
+function seedLine(i){
+  const o = SEED_ORGS[i % SEED_ORGS.length];
+  const pl = SEED_PLACES[(i*3+1) % SEED_PLACES.length];
+  const nm = SEED_NAMES[(i*5+2) % SEED_NAMES.length];
+  const an = SEED_ANGLES[i % SEED_ANGLES.length];
+  const stt = SEED_STRUCT[(i*2) % SEED_STRUCT.length];
+  return '- 切入角度：'+an+'\n- '+stt+'\n- 本篇主要单位/场景设定用：'+o+'、'+pl+'、主要人物/联系人用“'+nm+'”（可另加1—2个配角姓名）\n- 段落开头不要与本批其他篇重复（不要都用“为了……”开头）';
+}
+function varianceNote(seed){
+  const m = seed.match(/切入角度：(.+)/); return m? m[1].slice(0,18) : '差异化';
+}
+function parseReplace(instr){
+  let m = instr.match(/把[“"](.+?)[”"]\s*(?:改|换)成[“"](.*?)[”"]/);
+  if(m) return {from:m[1], to:m[2]};
+  m = instr.match(/将[“"](.+?)[”"]\s*(?:改|换|替换)为[“"](.*?)[”"]/);
+  if(m) return {from:m[1], to:m[2]};
+  m = instr.match(/[“"](.+?)[”"]\s*替换为\s*[“"](.*?)[”"]/);
+  if(m) return {from:m[1], to:m[2]};
+  m = instr.match(/^替换[：:]\s*(.+?)\s*(?:=>|→|->)\s*(.+)$/);
+  if(m) return {from:m[1], to:m[2]};
+  return null;
+}
+function copyText(t){
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(t).catch(()=>fallbackCopy(t));
+  } else fallbackCopy(t);
+}
+function fallbackCopy(t){
+  const ta = document.createElement('textarea'); ta.value=t; ta.style.position='fixed'; ta.style.left='-9999px';
+  document.body.appendChild(ta); ta.select();
+  try{ document.execCommand('copy'); }catch(e){}
+  ta.remove();
+}
+function exportWord(articles, filename){
+  let inner = '';
+  articles.forEach((a,i)=>{
+    if(articles.length>1) inner += '<h2>第 '+(i+1)+' 篇　'+esc(a.title)+'</h2>';
+    else inner += '<h1>'+esc(a.title)+'</h1>';
+    a.body.split('\n').forEach(line=>{
+      const t = line.trim();
+      if(!t){ inner += '<p class="emp">&nbsp;</p>'; return; }
+      const isTitle = /^[一二三四五六七八九十]+、/.test(t) || /^（[一二三四五六七八九十]+）/.test(t);
+      inner += '<p'+(isTitle?' class="h"':'')+'>'+esc(line).replace(/^ +/g, m=>'&nbsp;'.repeat(m.length))+'</p>';
+    });
+    inner += '<p class="emp">&nbsp;</p>';
+  });
+  const html = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">'+
+    '<head><meta charset="utf-8"><title>'+esc(filename)+'</title>'+
+    '<style>@page{size:A4;margin:2.54cm 3.17cm}body{font-family:"宋体",SimSun;font-size:12pt;line-height:1.9}h1{font-family:"黑体",SimHei;font-size:16pt;text-align:center;margin:0 0 18pt}h2{font-family:"黑体",SimHei;font-size:14pt;margin:22pt 0 10pt}p{margin:0 0 6pt;text-indent:2em;text-align:justify}p.h{font-family:"黑体",SimHei;text-indent:2em}p.emp{text-indent:0}</style>'+
+    '</head><body>'+inner+'</body></html>';
+  const blob = new Blob(['\ufeff'+html], {type:'application/msword'});
+  downloadBlob(blob, filename.replace(/[\\/:*?"<>|]/g,'_')+'.doc');
+  toast('已导出 Word（.doc，可直接用 Word 打开编辑）');
+}
+
+/* ------------------------- 十、渲染 ------------------------- */
+function renderTop(){
+  const p = P();
+  const keyed = !!ST.settings.apiKey;
+  const modeTxt = ST.settings.mode==='manual' ? '仅导出提示词' : (keyed? (ST.settings.mode==='api'?'接口生成':'接口生成（已就绪）') : '未填 Key → 导出提示词模式');
+  // 保存状态也要常驻显示，不能让用户在不知情的情况下丢数据
+  const storePill = STORE_MODE.kind==='local'
+    ? '<span class="pill ok">已自动保存</span>'
+    : (STORE_MODE.kind==='session'
+        ? '<span class="pill warn">临时保存·关掉会清空</span>'
+        : '<span class="pill warn">无法保存·请导出备份</span>');
+  $('tbMeta').innerHTML =
+    '<span class="pill '+(keyed?'ok':'warn')+'">'+esc(modeTxt)+'</span>'+
+    (keyed? '<span class="pill">'+esc(ST.settings.model)+'</span>':'')+
+    storePill+
+    '<span class="pill">项目：'+esc(p?p.name:'-')+'</span>';
+}
+function renderTabs(){
+  const p = P();
+  const tabs = [
+    {k:'setup', n:'1', t:'写作需求'},
+    {k:'prompt', n:'2', t:'提示词打磨'+(p.prompts.length?('（'+p.prompts.length+'版）'):'')},
+    {k:'gen', n:'3', t:'批量出稿'},
+    {k:'edit', n:'4', t:'成品修改'+(p.articles.length?('（'+p.articles.length+'篇）'):'')}
+  ];
+  $('tabs').innerHTML = tabs.map(t=>{
+    let dot = '';
+    if(t.k==='prompt' && p.prompts.length && !p._seenPrompt) dot='<span class="dot"></span>';
+    return '<button class="tab'+(ST.ui.tab===t.k?' on':'')+'" onclick="App.setTab(\''+t.k+'\')"><span class="n">'+t.n+'</span>'+esc(t.t)+dot+'</button>';
+  }).join('');
+}
+function renderProjList(){
+  $('projList').innerHTML = ST.projects.map(p=>{
+    const g = p.req.genreId==='other' ? '自定义文种' : G(p.req.genreId).name;
+    return '<div class="proj'+(p.id===ST.currentId?' on':'')+'" onclick="App.pick(\''+p.id+'\')">'+
+      '<div class="t">'+esc(p.name)+'</div>'+
+      '<div class="s"><span>'+esc(g)+'</span><span>'+p.articles.length+'篇</span><span>'+esc(p.created.slice(5,10))+'</span></div>'+
+    '</div>';
+  }).join('');
+}
+function renderWork(){
+  if(ST.ui.tab==='setup') return renderSetup();
+  if(ST.ui.tab==='prompt') return renderPromptPanel();
+  if(ST.ui.tab==='gen') return renderGenPanel();
+  return renderEditPanel();
+}
+function renderAll(){ renderTop(); renderTabs(); renderProjList(); renderWork(); }
+
+/* ---------- 视图：需求 ---------- */
+function renderSetup(){
+  const p=P(); const r=p.req;
+  const chips = GENRES.map(g=>'<div class="chip'+(r.genreId===g.id?' on':'')+'" onclick="App.setReq(\'genreId\',\''+g.id+'\');renderAll()" title="'+esc(g.proj)+'">'+esc(g.name)+'<span class="cat">'+esc(g.group)+'</span></div>').join('');
+  const g = r.genreId==='other'? null : G(r.genreId);
+  $('work').innerHTML =
+  '<div class="grid">'+
+    '<div>'+
+      '<div class="card"><div class="card-h"><h3>第一步：选文种</h3><span class="spacer"></span>'+
+        '<span class="pill mode-inline" style="background:#eef4f0;border:1px solid #d5e5dc;color:#1f6f52">'+esc(ST.settings.apiKey?('接口已就绪 · '+ST.settings.model):'未填 Key · 导出提示词模式')+'</span>'+
+        '<span class="pill mode-inline" style="background:'+(STORE_MODE.kind==='local'?'#eef4f0':'#fbecec')+';border:1px solid '+(STORE_MODE.kind==='local'?'#d5e5dc':'#eccfcf')+';color:'+(STORE_MODE.kind==='local'?'#1f6f52':'#8e2f2f')+'">'+esc(STORE_MODE.kind==='local'?'已自动保存':'保存异常·点右上角备份')+'</span>'+
+        '<span class="hint">按教材章节归类，点一下即选中</span></div>'+
+        '<div class="card-b"><div class="chips">'+chips+
+        '<div class="chip'+(r.genreId==='other'?' on':'')+'" onclick="App.setReq(\'genreId\',\'other\');renderAll()">其他文种<span class="cat">自定义</span></div></div>'+
+        (r.genreId==='other'? '<div class="field" style="margin-top:12px"><label>自定义文种名称</label><input type="text" value="'+esc(r.genreOther)+'" oninput="App.setReq(\'genreOther\',this.value)" placeholder="如：会议纪要、简报、海报"></div>':'')+
+        (g? '<div class="note green" style="margin-top:12px"><b>教材出处：</b>'+esc(g.proj)+'<br><b>适用场合：</b>'+esc(g.scene)+'<br><b>结构框架：</b>'+esc(g.struct.join(' → '))+'</div>':'')+
+        '</div></div>'+
+
+      '<div class="card"><div class="card-h"><h3>第二步：说清这次写什么</h3></div><div class="card-b">'+
+        '<div class="field"><label>标题方向<span class="sub">没想好可以留空，程序让模型自拟</span></label><input type="text" value="'+esc(r.title)+'" oninput="App.setReq(\'title\',this.value)" placeholder="如：关于开展2025年学风建设月活动的通知"></div>'+
+        '<div class="field"><label>使用场景与事由<span class="sub">最重要的一项，写越具体越不跑题</span></label><textarea rows="4" class="ta" style="min-height:104px" oninput="App.setReq(\'scene\',this.value)" placeholder="如：学院要在5月开展学风建设月，想开一次全体班长会布置，要求各班交一份班级学风自查表，活动期间抓到两次迟到要通报">'+esc(r.scene)+'</textarea></div>'+
+        '<div class="row">'+
+          '<div class="field"><label>写作者身份</label><input type="text" value="'+esc(r.role)+'" oninput="App.setReq(\'role\',this.value)" placeholder="如：学院学生会办公室干事 / 某班班长"></div>'+
+          '<div class="field"><label>受文对象</label><input type="text" value="'+esc(r.audience)+'" oninput="App.setReq(\'audience\',this.value)" placeholder="如：全院各班级 / 公司人力资源部"></div>'+
+        '</div>'+
+        '<div class="field"><label>单位、部门、人名等固定信息<span class="sub">可留空，留空则用 ×× 占位</span></label><input type="text" value="'+esc(r.deptName)+'" oninput="App.setReq(\'deptName\',this.value)" placeholder="如：××职业学院机电工程学院"></div>'+
+      '</div></div>'+
+
+      '<div class="card"><div class="card-h"><h3>第三步：字数和篇数</h3></div><div class="card-b">'+
+        '<div class="row row3">'+
+          '<div class="field"><label>最少字数</label><input type="number" value="'+r.wcMin+'" oninput="App.setReq(\'wcMin\',parseInt(this.value)||0)"></div>'+
+          '<div class="field"><label>最多字数</label><input type="number" value="'+r.wcMax+'" oninput="App.setReq(\'wcMax\',parseInt(this.value)||0)"></div>'+
+          '<div class="field"><label>生成篇数</label><input type="number" value="'+r.count+'" min="1" max="20" oninput="App.setReq(\'count\',parseInt(this.value)||1)"></div>'+
+        '</div>'+
+        '<div class="tip">字数按中文习惯统计“除空格外的所有字符（含标点）”。程序每篇生成后会自动数一遍，不足自动扩写、超了自动精简，最多来回两轮。</div>'+
+      '</div></div>'+
+    '</div>'+
+
+    '<div>'+
+      '<div class="card"><div class="card-h"><h3>第四步：文风与红线</h3></div><div class="card-b">'+
+        '<div class="field"><label>像谁写的</label><select onchange="App.setReq(\'styleLevel\',this.value);renderAll()">'+
+          ['student|像学生/员工自己写的（推荐，最不出AI味）','plain|平实朴素，不口语也不书面','formal|正式公文风，只要去掉机器味','loose|更口语更随性'].map(x=>{const [v,t]=x.split('|');return '<option value="'+v+'"'+(r.styleLevel===v?' selected':'')+'>'+t+'</option>';}).join('')+
+        '</select></div>'+
+        '<div class="field"><label>必须出现的内容<span class="sub">一条一行，或直接写一段</span></label><textarea rows="3" class="ta" style="min-height:78px" oninput="App.setReq(\'mustHave\',this.value)" placeholder="如：必须有报名截止时间6月10日&#10;必须写清联系人电话">'+esc(r.mustHave)+'</textarea></div>'+
+        '<div class="field"><label>绝对不能出现的内容</label><textarea rows="3" class="ta" style="min-height:78px" oninput="App.setReq(\'mustNot\',this.value)" placeholder="如：不要出现真实学校名称&#10;不要提“人工智能”">'+esc(r.mustNot)+'</textarea></div>'+
+        '<div class="field"><label>成文日期</label><input type="text" value="'+esc(r.deadLine)+'" oninput="App.setReq(\'deadLine\',this.value)"></div>'+
+        '<div class="field"><label>其他要求</label><textarea rows="2" class="ta" style="min-height:72px" oninput="App.setReq(\'extra\',this.value)" placeholder="如：落款用“××学院学生会”；正文分三部分">'+esc(r.extra)+'</textarea></div>'+
+        '<div class="btnbar"><button class="btn pri" onclick="App.genPrompt()">生成提示词 →</button>'+
+        '<button class="btn" onclick="App.rename()">改项目名</button>'+
+        '<button class="btn danger" onclick="App.del()">删除项目</button></div>'+
+      '</div></div>'+
+
+      '<div class="card"><div class="card-h"><h3>去AI痕迹：本程序用的硬规则</h3><span class="spacer"></span><span class="hint">会原样写进提示词</span></div>'+
+        '<div class="card-b"><ol style="margin:0;padding-left:20px;font-size:13px;color:var(--ink2);line-height:1.85">'+
+        STYLE_RULES.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ol></div></div>'+
+
+      (p.logs.length? '<div class="card"><div class="card-h"><h3>运行日志</h3></div><div class="card-b tight"><div class="log" style="border-radius:0;max-height:200px">'+
+        p.logs.map(l=>'<span class="'+l.cls+'">['+esc(l.t)+'] '+esc(l.msg)+'</span>').join('\n')+'</div></div></div>' : '')+
+    '</div>'+
+  '</div>';
+}
+
+/* ---------- 视图：提示词打磨 ---------- */
+function renderPromptPanel(){
+  const p=P();
+  if(!p.prompts.length){
+    $('work').innerHTML = '<div class="empty"><span class="big">✎</span>还没有提示词。<br>先到「写作需求」把文种、事由、字数填好，点“生成提示词”。</div>'+
+      '<div style="text-align:center"><button class="btn pri" onclick="App.setTab(\'setup\')">去填需求</button> '+
+      '<button class="btn" onclick="App.pastePrompt()">粘贴外部提示词</button></div>';
+    return;
+  }
+  const cur = p.prompts[p.curPrompt];
+  const items = p.prompts.map((x,i)=>{
+    const sameAsPrev = i>0 && x.text===p.prompts[i-1].text;
+    return '<div class="item'+(i===p.curPrompt?' on':'')+'" onclick="App.useVersion('+i+')">'+
+      '<div class="item-h"><span class="badge '+(x.mode==='ai'?'ok':(x.mode==='manual'?'warn':'info'))+'">v'+x.v+'</span>'+
+      '<span class="t">'+esc((x.note||'').split('\n')[0].slice(0,44))+'</span>'+
+      '<span class="m">'+esc(x.time.slice(5))+'</span>'+
+      (sameAsPrev?'<span class="badge warn">与原版相同（待人工优化）</span>':'')+
+      '</div></div>';
+  }).join('');
+
+  const chk = checkPrompt(cur.text);
+  const okN = chk.filter(c=>c.ok).length;
+
+  $('work').innerHTML =
+  '<div class="grid">'+
+    '<div>'+
+      '<div class="card"><div class="card-h"><h3>版本历史</h3><span class="spacer"></span><span class="hint">点一下切换查看</span></div>'+
+        '<div class="card-b tight" style="padding:12px">'+items+'</div></div>'+
+
+      '<div class="card"><div class="card-h"><h3>提出修改意见，让它自己升级</h3></div><div class="card-b">'+
+        '<div class="note blue" style="margin-bottom:10px">把不满意的地方直接写出来，程序会把意见合并进提示词，生成新版本（旧版保留）。意见写得越具体，改得越准。</div>'+
+        '<div class="field"><textarea id="fbInput" rows="5" class="ta" style="min-height:130px" placeholder="例如：&#10;· 字数改成1200-1500字，并且必须写到具体日期&#10;· 不要出现“首先其次最后”，不要用“××”占位，换成具体假名字&#10;· 增加一条：正文里要有一段写存在的困难&#10;· 去掉参考样式那一节，只保留结构框架"></textarea></div>'+
+        '<div class="btnbar">'+
+          '<button class="btn pri" onclick="App.refinePrompt()">'+(busy?'优化中…':'按意见优化升级 →')+'</button>'+
+          '<button class="btn" onclick="App.editPromptManual()">手动编辑</button>'+
+          '<button class="btn" onclick="App.pastePrompt()">粘贴外部优化结果</button>'+
+          '<button class="btn" onclick="App.diffPrompt()">与上一版对比</button>'+
+        '</div>'+
+        (busy?'<div class="status"><span class="spin"></span>正在调用模型重写提示词……</div>':'')+
+      '</div></div>'+
+
+      '<div class="card"><div class="card-h"><h3>常用修改意见（点一下填入）</h3></div><div class="card-b"><div class="chips">'+
+        ['把字数下限提高200字，并说明多出来的篇幅写什么',
+         '删掉参考样式那一节，避免照抄',
+         '增加一条要求：必须出现具体的困难或问题，不能只报成绩',
+         '增加一条要求：通篇不超过2个四字成语',
+         '要求开头不要用“为了……”句式',
+         '把单位和人名改成具体示例，不要用××',
+         '增加要求：正文分三部分，每部分不超过两段',
+         '要求最后一段落到具体的时间节点或联系人'
+        ].map(x=>'<div class="chip" onclick="document.getElementById(\'fbInput\').value=(document.getElementById(\'fbInput\').value?document.getElementById(\'fbInput\').value+\'\\n\':\'\')+\''+x.replace(/'/g,"\\'")+'\';document.getElementById(\'fbInput\').focus()">'+esc(x)+'</div>').join('')+
+      '</div></div></div>'+
+    '</div>'+
+
+    '<div>'+
+      '<div class="card"><div class="card-h"><h3>当前提示词 v'+cur.v+'</h3><span class="spacer"></span>'+
+        '<span class="hint">'+(cur.mode==='ai'?'模型按意见生成':(cur.mode==='manual'?'人工/外部修改':'规则引擎生成'))+'　'+esc(cur.time)+'</span></div>'+
+        '<div class="card-b">'+
+        '<div class="btnbar" style="margin-bottom:10px">'+
+          '<button class="btn" onclick="App.copyPrompt()">复制提示词</button>'+
+          '<button class="btn" onclick="App.exportPrompt()">导出 TXT</button>'+
+          '<button class="btn pri" onclick="App.setTab(\'gen\')">拿它去出稿 →</button>'+
+        '</div>'+
+        '<div class="doc" style="max-height:560px">'+esc(cur.text)+'</div>'+
+        (cur.note && cur.note.indexOf('修改指令包')>=0 ? '<div class="secttl">修改指令包（复制到对话框里让模型改提示词）</div><div class="doc" style="max-height:220px">'+esc(cur.note)+'</div>' : '')+
+        '</div></div>'+
+
+      '<div class="card"><div class="card-h"><h3>提示词自检</h3><span class="spacer"></span><span class="badge '+(okN===chk.length?'ok':(okN>=7?'warn':'bad'))+'">'+okN+'/'+chk.length+' 项齐全</span></div>'+
+        '<div class="card-b"><div class="kv" style="grid-template-columns:1fr 1fr">'+
+          chk.map(c=>'<div>'+(c.ok?'<span class="badge ok">✓</span> ':'<span class="badge bad">✗</span> ')+esc(c.name)+'</div>').join('')+
+        '</div>'+(okN<chk.length?'<div class="note" style="margin-top:10px">有缺项说明这项要求没写进提示词，模型可能自由发挥。回到「写作需求」补全后重新生成即可。</div>':'<div class="note green" style="margin-top:10px">十项要素齐全，可以放心出稿。</div>')+
+        '</div></div>'+
+    '</div>'+
+  '</div>';
+}
+
+/* ---------- 视图：出稿 ---------- */
+function renderGenPanel(){
+  const p=P();
+  if(!p.prompts.length){
+    $('work').innerHTML='<div class="empty"><span class="big">✎</span>还没有可用的提示词，先去「提示词打磨」。</div>';
+    return;
+  }
+  const cur = p.prompts[p.curPrompt];
+  const mode = (ST.settings.mode==='manual'||!ST.settings.apiKey) ? 'manual':'api';
+  const list = p.articles.length? p.articles.map((a,i)=>articleCard(a,i,true)).join('') :
+    '<div class="empty"><span class="big">▤</span>还没有文章，点上面的按钮开始生成。</div>';
+  $('work').innerHTML =
+    '<div class="card"><div class="card-h"><h3>用 v'+cur.v+' 提示词批量出稿</h3><span class="spacer"></span>'+
+      '<span class="hint">'+esc(curGenre()?curGenre().name:(p.req.genreOther||'自定义'))+'　'+p.req.wcMin+'—'+p.req.wcMax+' 字　共 '+p.req.count+' 篇</span></div>'+
+      '<div class="card-b">'+
+        '<div class="btnbar">'+
+          '<button class="btn pri" onclick="App.generate()">'+(busy?'生成中…':'生成 '+p.req.count+' 篇不同文章')+'</button>'+
+          '<button class="btn" onclick="App.pasteArticle()">粘贴外部成稿</button>'+
+          '<button class="btn" onclick="App.exportAllArticles()">导出全部 TXT</button>'+
+          '<button class="btn" onclick="App.exportAllDoc()">导出全部 Word</button>'+
+          '<button class="btn" onclick="App.setTab(\'prompt\')">回去改提示词</button>'+
+        '</div>'+
+        (mode==='manual'? '<div class="note" style="margin-top:11px"><b>当前是无 Key 模式：</b>点“生成”会弹出 '+p.req.count+' 份带差异化要求的提示词，分别贴给对话模型用；生成后点“粘贴外部成稿”把结果收回来，再修改。</div>':'')+
+        (busy?'<div class="status"><span class="spin"></span>正在生成，逐篇完成，请勿关闭页面……</div>':'')+
+        '<div class="tip" style="margin-top:9px">每篇会自动换：切入角度、结构变体、单位名、地点、人名，所以不会是同一篇的复制品。生成后程序自己数字数，不够就补、超了就删。</div>'+
+      '</div></div>'+
+    (p.logs.length? '<div class="card"><div class="card-h"><h3>生成进度</h3></div><div class="card-b tight"><div class="log" style="border-radius:0;max-height:170px">'+
+      p.logs.map(l=>'<span class="'+l.cls+'">['+esc(l.t)+'] '+esc(l.msg)+'</span>').join('\n')+'</div></div></div>':'')+
+    '<div class="secttl">已生成的文章（'+p.articles.length+' 篇）</div>'+ list;
+}
+
+function articleCard(a, i, compact){
+  const p=P();
+  const inRange = a.wc>=p.req.wcMin && a.wc<=p.req.wcMax;
+  const ratio = Math.min(100, Math.round(a.wc/Math.max(1,p.req.wcMax)*100));
+  const hits = (a.aiHits||[]);
+  return '<div class="item">'+
+    '<div class="item-h" onclick="App.openEdit(\''+a.id+'\')">'+
+      '<span class="badge info">第 '+(i+1)+' 篇</span>'+
+      '<span class="t">'+esc(a.title)+'</span>'+
+      '<span class="m">'+a.wc+' 字</span>'+
+      '<span class="badge '+(inRange?'ok':'warn')+'">'+(inRange?'字数达标':(a.wc<p.req.wcMin?'偏少':'偏多'))+'</span>'+
+      (hits.length? '<span class="badge warn" title="'+esc(hits.join('、'))+'">AI味词 '+hits.length+'</span>':'<span class="badge ok">干净</span>')+
+    '</div>'+
+    '<div class="item-b">'+
+      '<div class="doc serif" style="max-height:260px">'+esc(a.body.slice(0,900))+(a.body.length>900?'\n……（点标题展开编辑）':'')+'</div>'+
+      '<div class="wc" style="margin-top:9px"><span class="bar"><i class="'+(inRange?'':'out')+'" style="width:'+ratio+'%"></i></span>'+
+        '<span>要求 '+p.req.wcMin+'—'+p.req.wcMax+' 字，本篇 '+a.wc+' 字'+(inRange?'':'（超出区间）')+'</span></div>'+
+      '<div class="btnbar" style="margin-top:9px">'+
+        '<button class="btn sm" onclick="event.stopPropagation();App.openEdit(\''+a.id+'\')">打开修改</button>'+
+        '<button class="btn sm" onclick="event.stopPropagation();App.copyArticle(\''+a.id+'\')">复制</button>'+
+        '<button class="btn sm" onclick="event.stopPropagation();App.exportArticle(\''+a.id+'\')">TXT</button>'+
+        '<button class="btn sm" onclick="event.stopPropagation();App.exportArticleDoc(\''+a.id+'\')">Word</button>'+
+        '<button class="btn sm" onclick="event.stopPropagation();App.regenOne(\''+a.id+'\')">换一篇重写</button>'+
+        '<button class="btn sm danger" onclick="event.stopPropagation();App.delArticle(\''+a.id+'\')">删除</button>'+
+      '</div>'+
+    '</div>'+
+  '</div>';
+}
+
+/* ---------- 视图：成品修改 ---------- */
+function renderEditPanel(keepFocus){
+  const p=P();
+  if(!p.articles.length){
+    $('work').innerHTML='<div class="empty"><span class="big">▤</span>还没有文章。先到「批量出稿」生成，或用“粘贴外部成稿”导入。</div>'+
+      '<div style="text-align:center"><button class="btn pri" onclick="App.setTab(\'gen\')">去出稿</button> <button class="btn" onclick="App.pasteArticle()">粘贴外部成稿</button></div>';
+    return;
+  }
+  if(!ST.ui.articleId || !p.articles.find(a=>a.id===ST.ui.articleId)) ST.ui.articleId = p.articles[0].id;
+  const a = p.articles.find(x=>x.id===ST.ui.articleId);
+  const idx = p.articles.indexOf(a)+1;
+  const inRange = a.wc>=p.req.wcMin && a.wc<=p.req.wcMax;
+  const scan = scanAI(a.body);
+  const hits = scan.hits;
+
+  const listHtml = p.articles.map((x,i)=>{
+    const ok = x.wc>=p.req.wcMin && x.wc<=p.req.wcMax;
+    return '<div class="item'+(x.id===a.id?' on':'')+'" onclick="App.openEdit(\''+x.id+'\')">'+
+      '<div class="item-h"><span class="t">'+(i+1)+'. '+esc(x.title)+'</span><span class="m">'+x.wc+'字</span>'+
+      '<span class="badge '+(ok?'ok':'warn')+'">'+(ok?'达标':'偏差')+'</span></div></div>';
+  }).join('');
+
+  $('work').innerHTML =
+  '<div class="grid">'+
+    '<div>'+
+      '<div class="card"><div class="card-h"><h3>文章列表</h3><span class="spacer"></span>'+
+        '<button class="btn sm" onclick="App.pasteArticle()">粘贴新成稿</button></div>'+
+        '<div class="card-b tight" style="padding:12px">'+listHtml+'</div></div>'+
+
+      '<div class="card"><div class="card-h"><h3>让它按你的要求改</h3></div><div class="card-b">'+
+        '<div class="note blue" style="margin-bottom:10px">直接用大白话写要求。也可以只改几个字，例如：<span class="mono-s">把“定于6月18日”改成“定于6月20日”</span>（程序会直接替换，不调用模型、不花钱）。</div>'+
+        '<div class="field"><textarea id="reviseBox" rows="4" class="ta" style="min-height:104px" placeholder="例如：&#10;· 第二段太像总结，改成按时间顺序写&#10;· 把我方改成××学院学生会，落款日期改成2025年6月5日&#10;· 再删掉100字左右，结尾落到联系人电话上"></textarea></div>'+
+        '<div class="btnbar">'+
+          '<button class="btn pri" onclick="App.revise(\''+a.id+'\')">'+(busy?'处理中…':'按这个要求改')+'</button>'+
+          '<button class="btn warn" onclick="App.deAI(\''+a.id+'\')">一键去AI味改写</button>'+
+          '<button class="btn" onclick="App.expand(\''+a.id+'\',1)">字数不足就扩写</button>'+
+          '<button class="btn" onclick="App.expand(\''+a.id+'\',-1)">超出就精简</button>'+
+        '</div>'+
+        '<div class="chips" style="margin-top:10px">'+
+          ['把这篇文章的套话全部删掉','把排比句改成陈述句','把结尾改成落到具体时间和联系人','增加一段写存在的困难','把我方口径改成更口语一点，但格式不要动','段落长度打乱一些，不要每段一样长'
+          ].map(x=>'<div class="chip" onclick="document.getElementById(\'reviseBox\').value=\''+x.replace(/'/g,"\\'")+'\'">'+esc(x)+'</div>').join('')+
+        '</div>'+
+        (busy?'<div class="status"><span class="spin"></span>正在处理……</div>':'')+
+      '</div></div>'+
+
+      '<div class="card"><div class="card-h"><h3>AI味体检</h3><span class="spacer"></span>'+
+        '<span class="badge '+(hits.length===0?'ok':(hits.length<=3?'warn':'bad'))+'">'+(hits.length===0?'未发现明显套话':'发现 '+hits.length+' 处')+'</span></div>'+
+        '<div class="card-b">'+
+        (hits.length? '<div class="tip" style="margin-bottom:8px">这些词/句式最容易暴露机器味，点一下可直接替换为空或改掉：</div><div class="chips">'+
+            hits.map(w=>'<div class="chip" onclick="App.quickFix(\''+a.id+'\',\''+w.replace(/'/g,"\\'")+'\')">'+esc(w)+' ×</div>').join('')+'</div>' : '<div class="note green">本文没有命中套话词库。</div>')+
+        '<div class="secttl">句式体检</div><div class="kv">'+
+          '<dt>段落数</dt><dd>'+scan.stats.paras+'</dd>'+
+          '<dt>平均段长</dt><dd>'+scan.stats.avgPara+' 字</dd>'+
+          '<dt>段长变化</dt><dd>'+scan.stats.variation+(scan.stats.variation && scan.stats.variation<0.4? ' 偏低（句式偏均匀，机器味重）':' 正常')+'</dd>'+
+          '<dt>破折号</dt><dd>'+scan.stats.dash+' 处（建议 ≤1）</dd>'+
+          '<dt>Markdown加粗</dt><dd>'+scan.stats.mdBold+' 处（应为0）</dd>'+
+          '<dt>emoji</dt><dd>'+scan.stats.emoji+' 个（应为0）</dd>'+
+          '<dt>感叹号</dt><dd>'+scan.stats.exclaim+' 个</dd>'+
+        '</div>'+
+        '<div class="tip" style="margin-top:9px">这里的体检结果是实时的，你手动改一个字它就跟着变。</div>'+
+        '</div></div>'+
+
+      '<div class="card"><div class="card-h"><h3>改稿历史（'+a.history.length+' 个旧版本）</h3></div><div class="card-b">'+
+        (a.history.length? a.history.map((h,i)=>'<div class="btnbar" style="margin-bottom:6px"><span class="tip" style="flex:1">'+esc(h.time)+'　'+h.wc+' 字　'+esc(h.note||'')+'</span>'+
+          '<button class="btn sm" onclick="App.restore(\''+a.id+'\','+i+')">恢复这一版</button></div>').join('') : '<div class="tip">还没有历史版本。每次用模型改稿前，程序都会自动存一份当前版本。</div>')+
+      '</div></div>'+
+    '</div>'+
+
+    '<div>'+
+      '<div class="card"><div class="card-h"><h3>第 '+idx+' 篇 · 可直接编辑</h3><span class="spacer"></span>'+
+        '<span class="badge '+(inRange?'ok':'warn')+'">'+a.wc+' 字 / 要求 '+p.req.wcMin+'—'+p.req.wcMax+'</span></div>'+
+        '<div class="card-b">'+
+        '<div class="field"><label>标题</label><input type="text" id="edTitle" value="'+esc(a.title)+'" oninput="App.editField(\''+a.id+'\',\'title\',this.value)"></div>'+
+        '<div class="field"><label>正文<span class="sub">改完自动保存，字数实时统计</span></label>'+
+          '<textarea class="edit-area" id="edBody" oninput="App.editField(\''+a.id+'\',\'body\',this.value)">'+esc(a.body)+'</textarea></div>'+
+        '<div class="btnbar">'+
+          '<button class="btn sm" onclick="App.copyArticle(\''+a.id+'\')">复制全文</button>'+
+          '<button class="btn sm" onclick="App.exportArticle(\''+a.id+'\')">导出 TXT</button>'+
+          '<button class="btn sm" onclick="App.exportArticleDoc(\''+a.id+'\')">导出 Word</button>'+
+          '<button class="btn sm" onclick="App.regenOne(\''+a.id+'\')">整篇重写</button>'+
+          '<button class="btn sm" onclick="App.snapshot(\''+a.id+'\',\'手动存档\');toast(\'已存一份快照\')">存快照</button>'+
+          '<button class="btn sm danger" onclick="App.delArticle(\''+a.id+'\')">删除</button>'+
+        '</div>'+
+        '<details class="acc" style="margin-top:10px;margin-bottom:0"><summary>这一篇当初依据的需求单（改稿时对照用）</summary>'+
+        '<div class="acc-b"><div class="kv">'+
+          '<dt>文种</dt><dd>'+esc(curGenre()?curGenre().name:(p.req.genreOther||'自定义'))+(curGenre()?('　<span class="badge">'+esc(curGenre().proj)+'</span>'):'')+'</dd>'+
+          '<dt>标题方向</dt><dd>'+esc(p.req.title||'（模型自拟）')+'</dd>'+
+          '<dt>事由场景</dt><dd>'+esc(p.req.scene||'（未填）')+'</dd>'+
+          '<dt>写作者身份</dt><dd>'+esc(p.req.role||'（未填）')+'</dd>'+
+          '<dt>受文对象</dt><dd>'+esc(p.req.audience||'（未填）')+'</dd>'+
+          '<dt>单位信息</dt><dd>'+esc(p.req.deptName||'（用 ×× 占位）')+'</dd>'+
+          '<dt>字数区间</dt><dd>'+p.req.wcMin+'—'+p.req.wcMax+' 字</dd>'+
+          '<dt>成文日期</dt><dd>'+esc(p.req.deadLine||todayCn())+'</dd>'+
+          '<dt>文风</dt><dd>'+esc({student:'像学生/员工自己写的',plain:'平实朴素',formal:'正式公文风（去机器味）',loose:'更口语更随性'}[p.req.styleLevel]||p.req.styleLevel)+'</dd>'+
+          (p.req.mustHave? '<dt>必须出现</dt><dd>'+esc(p.req.mustHave)+'</dd>':'')+
+          (p.req.mustNot?  '<dt>不能出现</dt><dd>'+esc(p.req.mustNot)+'</dd>':'')+
+          (p.req.extra?    '<dt>其他要求</dt><dd>'+esc(p.req.extra)+'</dd>':'')+
+          '<dt>所用提示词</dt><dd>v'+(p.prompts[p.curPrompt]?p.prompts[p.curPrompt].v:'-')+'　'+
+            '<button class="btn sm" onclick="App.setTab(\'prompt\')">查看提示词</button>　'+
+            '<button class="btn sm" onclick="App.setTab(\'setup\')">去改需求</button></dd>'+
+        '</div>'+
+        '<div class="tip" style="margin-top:9px">改完需求后回到第 2 步重新生成提示词，再出稿，新文章就会按新需求写；已经生成的这篇不受影响。</div>'+
+        '</div></details>'+
+        '</div></div>'+
+
+      '<div class="card"><div class="card-h"><h3>这一篇的差异化设定</h3></div><div class="card-b">'+
+        '<div class="doc" style="max-height:150px">'+esc(a.seed||'（外部导入，无设定）')+'</div>'+
+        '<div class="tip" style="margin-top:7px">同一批文章靠这套设定互相区分。若两篇撞车了，点“整篇重写”会换一套设定。</div>'+
+      '</div></div>'+
+    '</div>'+
+  '</div>';
+  if(keepFocus && document.activeElement && document.activeElement.id==='edBody'){
+    const ta = $('edBody'); if(ta){ ta.focus(); const v=ta.value; ta.setSelectionRange(v.length,v.length); }
+  }
+}
+
+App.quickFix = function(id, word){
+  const a = P().articles.find(x=>x.id===id); if(!a) return;
+  App.snapshot(id,'删除套话“'+word+'”前');
+  a.body = a.body.split(word).join('');
+  a.body = a.body.replace(/，，/g,'，').replace(/。，/g,'。').replace(/，。/g,'。');
+  a.wc = countChars(a.body);
+  const s = scanAI(a.body); a.aiHits=s.hits; a.stats=s.stats;
+  save(); renderAll(); toast('已删除“'+word+'”');
+};
+
+/* ------------------------- 十一、启动与移动端适配 ------------------------- */
+document.addEventListener('keydown', e=>{
+  if(e.key==='Escape'){ UI.closeModal(); UI.closeDrawer(); }
+});
+document.addEventListener('click', e=>{
+  if(e.target && e.target.id==='mask') UI.closeModal();
+});
+
+/* 页面被隐藏（切后台/锁屏）时立刻存盘，手机上最怕切出去丢数据 */
+document.addEventListener('visibilitychange', ()=>{ if(document.hidden) save(); });
+window.addEventListener('pagehide', ()=>save());
+window.addEventListener('beforeunload', ()=>save());
+window.addEventListener('blur', ()=>save());
+
+/* 旋转屏幕 / 变宽后自动收起抽屉，避免遮住内容 */
+let _lastMobile = null;
+function onViewportChange(){
+  const m = UI.isMobile();
+  if(_lastMobile === null) { _lastMobile = m; return; }
+  if(m !== _lastMobile){ _lastMobile = m; if(!m) UI.closeDrawer(); }
+}
+window.addEventListener('resize', onViewportChange);
+window.addEventListener('orientationchange', ()=>{ setTimeout(()=>{ onViewportChange(); renderAll(); }, 260); });
+
+/* 打开时若是手机，默认不展开抽屉 */
+if(UI.isMobile()) UI.closeDrawer();
+
+load();
+renderAll();
+</script>
+</body>
+</html>
